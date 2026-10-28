@@ -1,0 +1,11 @@
+target/
+.git/
+.idea/
+.vscode/
+*.log
+*.bak
+*.backup
+application.properties
+src/main/resources/application.properties
+.env
+.env.*
