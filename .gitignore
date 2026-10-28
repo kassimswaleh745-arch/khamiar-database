@@ -1,0 +1,26 @@
+
+# Dependencies and build files
+**/node_modules/
+**/dist/
+**/target/
+
+# Secrets and configuration
+**/.env
+**/.env.*
+!**/.env.example
+**/application.properties
+**/application.properties.backup
+**/application.yml
+**/application.yaml
+
+# Backups
+*.bak
+*.backup
+*.broken
+
+# Nested repository
+/frontend/khamiar-database/
+
+# IDE
+.idea/
+.vscode/
