@@ -52,7 +52,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    
+
         /** Ni tovuti gani zinaruhusiwa kuongea na API hii */
 @Bean
 public CorsConfigurationSource corsConfigurationSource() {
@@ -65,7 +65,7 @@ public CorsConfigurationSource corsConfigurationSource() {
         "http://localhost:5174",
         "http://127.0.0.1:5174"
     ));
-   
+
 
 
 
