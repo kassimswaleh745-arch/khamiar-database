@@ -78,15 +78,17 @@ public CorsConfigurationSource corsConfigurationSource() {
         return source;
     }
 
-    private JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("roles");
-        authorities.setAuthorityPrefix("ROLE_");
+private JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtGrantedAuthoritiesConverter authorities =
+            new JwtGrantedAuthoritiesConverter();
 
-   .requestMatchers("/api/routes", "/api/routes/**").hasRole("ADMIN")
-                .requestMatchers("/api/staff/**").hasRole("ADMIN")
-                        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authorities);
-        return converter;
-    }
+    authorities.setAuthoritiesClaimName("roles");
+    authorities.setAuthorityPrefix("ROLE_");
+
+    JwtAuthenticationConverter converter =
+            new JwtAuthenticationConverter();
+
+    converter.setJwtGrantedAuthoritiesConverter(authorities);
+    return converter;
+}
 }
