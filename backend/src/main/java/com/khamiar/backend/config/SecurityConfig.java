@@ -52,18 +52,20 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Ni tovuti gani zinaruhusiwa kuongea na API hii */
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-   		 allowedOrigin,
-   		 "http://localhost:5173",
-   		 "http://127.0.0.1:5173",
-   		 "http://localhost:5174",
-   		 "http://127.0.0.1:5174"
-		));
+    
+        /** Ni tovuti gani zinaruhusiwa kuongea na API hii */
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
 
+    config.setAllowedOrigins(List.of(
+        allowedOrigin,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174"
+    ));
+   
 
 
 
@@ -80,7 +82,9 @@ public class SecurityConfig {
         authorities.setAuthoritiesClaimName("roles");
         authorities.setAuthorityPrefix("ROLE_");
 
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+   .requestMatchers("/api/routes", "/api/routes/**").hasRole("ADMIN")
+                .requestMatchers("/api/staff/**").hasRole("ADMIN")
+                        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authorities);
         return converter;
     }
