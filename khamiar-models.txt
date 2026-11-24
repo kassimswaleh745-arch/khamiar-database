@@ -1,0 +1,397 @@
+]633;E;for file in src/main/java/com/khamiar/backend/entity/*.java;26d53006-a198-45ac-9f4e-b090f7a060bd]633;C
+======================================
+MODEL: AuditLog.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "audit_logs")
+public class AuditLog {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(length = 150)
+    private String actor;
+
+    @Column(nullable = false, length = 50)
+    private String action;
+
+    @Column(length = 500)
+    private String details;
+
+    @Column(length = 64)
+    private String ip;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getActor() { return actor; }
+    public void setActor(String actor) { this.actor = actor; }
+
+    public String getAction() { return action; }
+    public void setAction(String action) { this.action = action; }
+
+    public String getDetails() { return details; }
+    public void setDetails(String details) { this.details = details; }
+
+    public String getIp() { return ip; }
+    public void setIp(String ip) { this.ip = ip; }
+}
+
+======================================
+MODEL: Customer.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "customers")
+public class Customer {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 150)
+    private String customerName;
+
+    @Column(nullable = false)
+    private LocalDate travelDate;
+
+    @Column(nullable = false, length = 255)
+    private String route;
+
+    @Column(nullable = false, length = 30)
+    private String phone;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal systemAmount;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal customerAmount;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal profit;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(length = 100)
+    private String createdBy;
+
+    @Column(length = 150)
+    private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private PaymentMethod paymentMethod;
+
+    private Long routeId;
+
+    private Integer ticketCount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private TicketStatus ticketStatus;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public LocalDate getTravelDate() { return travelDate; }
+    public void setTravelDate(LocalDate travelDate) { this.travelDate = travelDate; }
+
+    public String getRoute() { return route; }
+    public void setRoute(String route) { this.route = route; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public BigDecimal getSystemAmount() { return systemAmount; }
+    public void setSystemAmount(BigDecimal systemAmount) { this.systemAmount = systemAmount; }
+
+    public BigDecimal getCustomerAmount() { return customerAmount; }
+    public void setCustomerAmount(BigDecimal customerAmount) { this.customerAmount = customerAmount; }
+
+    public BigDecimal getProfit() { return profit; }
+    public void setProfit(BigDecimal profit) { this.profit = profit; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Long getRouteId() { return routeId; }
+    public void setRouteId(Long routeId) { this.routeId = routeId; }
+
+    public Integer getTicketCount() { return ticketCount; }
+    public void setTicketCount(Integer ticketCount) { this.ticketCount = ticketCount; }
+
+    public TicketStatus getTicketStatus() { return ticketStatus; }
+    public void setTicketStatus(TicketStatus ticketStatus) { this.ticketStatus = ticketStatus; }
+}
+
+======================================
+MODEL: PaymentMethod.java
+======================================
+package com.khamiar.backend.entity;
+
+public enum PaymentMethod {
+    CASH,
+    MOBILE_MONEY,
+    BANK_TRANSFER,
+    OTHER
+}
+
+======================================
+MODEL: Role.java
+======================================
+package com.khamiar.backend.entity;
+
+public enum Role {
+    ADMIN,
+    EMPLOYEE
+}
+
+======================================
+MODEL: SystemSetting.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "system_settings")
+public class SystemSetting {
+
+    @Id
+    private Long id;
+
+    @Column(nullable = false)
+    private boolean systemLocked;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public boolean isSystemLocked() { return systemLocked; }
+    public void setSystemLocked(boolean systemLocked) { this.systemLocked = systemLocked; }
+}
+
+======================================
+MODEL: TicketStatus.java
+======================================
+package com.khamiar.backend.entity;
+
+public enum TicketStatus {
+    ISSUED,
+    USED,
+    CANCELLED
+}
+
+======================================
+MODEL: TicketStockEntry.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "ticket_stock")
+public class TicketStockEntry {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long routeId;
+
+    @Column(nullable = false)
+    private int quantity;
+
+    @Column(length = 200)
+    private String note;
+
+    @Column(length = 100)
+    private String createdBy;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+
+    public Long getRouteId() { return routeId; }
+    public void setRouteId(Long routeId) { this.routeId = routeId; }
+
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+}
+
+======================================
+MODEL: TravelRoute.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "travel_routes")
+public class TravelRoute {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 150)
+    private String name;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal customerPrice;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal systemPrice;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public BigDecimal getCustomerPrice() { return customerPrice; }
+    public void setCustomerPrice(BigDecimal customerPrice) { this.customerPrice = customerPrice; }
+
+    public BigDecimal getSystemPrice() { return systemPrice; }
+    public void setSystemPrice(BigDecimal systemPrice) { this.systemPrice = systemPrice; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+}
+
+======================================
+MODEL: User.java
+======================================
+package com.khamiar.backend.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String username;
+
+    @Column(nullable = false, length = 255)
+    private String password;   // hapa inahifadhiwa HASH, si password halisi
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(length = 100)
+    private String fullName;
+
+    @Column(length = 150, unique = true)
+    private String email;
+
+    @Column(length = 30)
+    private String phone;
+
+    @PrePersist
+    void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+}
