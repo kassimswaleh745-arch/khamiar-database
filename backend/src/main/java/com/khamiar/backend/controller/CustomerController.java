@@ -1,6 +1,8 @@
 package com.khamiar.backend.controller;
 
 import com.khamiar.backend.dto.CustomerRequest;
+import com.khamiar.backend.dto.PhoneLookupRequest;
+import com.khamiar.backend.dto.PhoneLookupResponse;
 import com.khamiar.backend.dto.CustomerResponse;
 import com.khamiar.backend.dto.TicketStatusRequest;
 import com.khamiar.backend.service.CustomerService;
@@ -60,4 +62,34 @@ public class CustomerController {
     private static boolean isAdmin(Authentication auth) {
         return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
+
+    @PostMapping("/lookup-phone")
+    public PhoneLookupResponse lookupPhone(
+            @Valid @RequestBody PhoneLookupRequest request) {
+
+        return service.lookupPhone(request.phone());
+    }
+
+
+    @GetMapping("/deleted")
+    public List<CustomerResponse> deleted(Authentication auth) {
+        requireAdmin(auth);
+        return service.findDeleted();
+    }
+
+    @PutMapping("/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restore(@PathVariable Long id, Authentication auth) {
+        requireAdmin(auth);
+        service.restore(id, auth.getName());
+    }
+
+    private static void requireAdmin(Authentication auth) {
+        if (!isAdmin(auth)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Administrator access required");
+        }
+    }
+
 }

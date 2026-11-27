@@ -140,7 +140,7 @@ export default function Customers() {
             <input
               type="search"
               className="form-control"
-              placeholder="Search by name or phone..."
+              placeholder="Search by name, phone or booking number..."
               aria-label="Search customer records"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -169,13 +169,14 @@ export default function Customers() {
       <div className="table-responsive card shadow-sm">
         <table
           className="table table-hover align-middle mb-0"
-          style={{ minWidth: isAdmin ? 950 : 850 }}
+          style={{ minWidth: isAdmin ? 1100 : 1000 }}
           aria-label="Customer booking records"
         >
           <thead className="table-dark">
             <tr>
               <th>ID</th>
               <th>Customer</th>
+              <th>Booking Number</th>
               <th>Route</th>
               <th>Travel Date</th>
               <th className="text-end">Tickets</th>
@@ -191,7 +192,7 @@ export default function Customers() {
             {loading && (
               <tr>
                 <td
-                  colSpan={isAdmin ? 9 : 8}
+                  colSpan={isAdmin ? 10 : 9}
                   className="text-center py-5"
                 >
                   <div
@@ -209,7 +210,7 @@ export default function Customers() {
             {!loading && !error && customers.length === 0 && (
               <tr>
                 <td
-                  colSpan={isAdmin ? 9 : 8}
+                  colSpan={isAdmin ? 10 : 9}
                   className="text-center py-5"
                 >
                   <i
@@ -229,7 +230,7 @@ export default function Customers() {
 
                   <p className="text-muted">
                     {search.trim()
-                      ? "Try a different customer name or phone number."
+                      ? "Try a different name, phone or booking number."
                       : "Registered customer bookings will appear here."}
                   </p>
 
@@ -253,6 +254,9 @@ export default function Customers() {
                   <td>
                     <div className="fw-semibold">{c.customerName}</div>
                     <div className="small text-muted">{c.phone}</div>
+                  </td>
+                  <td className="text-nowrap">
+                    {c.bookingReference || "—"}
                   </td>
                   <td>{c.route}</td>
                   <td className="text-nowrap">{formatTravelDate(c.travelDate)}</td>

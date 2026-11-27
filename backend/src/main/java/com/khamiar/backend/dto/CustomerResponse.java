@@ -20,5 +20,6 @@ public record CustomerResponse(
         String email,
         Long routeId,
         Integer ticketCount,
-        TicketStatus ticketStatus
+        TicketStatus ticketStatus,
+        String bookingReference
 ) {}

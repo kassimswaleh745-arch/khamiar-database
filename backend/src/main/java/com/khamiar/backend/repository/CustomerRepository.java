@@ -15,8 +15,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     List<Customer> findAllByOrderByIdDesc();
 
-    List<Customer> findByCustomerNameContainingIgnoreCaseOrPhoneContainingOrderByIdDesc(
-            String name, String phone);
+    List<Customer> findByCustomerNameContainingIgnoreCaseOrPhoneContainingOrBookingReferenceContainingIgnoreCaseOrderByIdDesc(
+            String name, String phone, String bookingReference);
 
     // Ripoti
     List<Customer> findByTravelDateBetweenOrderByTravelDateAscIdAsc(LocalDate from, LocalDate to);
@@ -62,4 +62,31 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("select sum(c.profit) from Customer c where c.travelDate between :from and :to "
             + "and (c.ticketStatus is null or c.ticketStatus <> com.khamiar.backend.entity.TicketStatus.CANCELLED)")
     BigDecimal sumProfitBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    List<Customer> findByPhoneOrderByIdDesc(String phone);
+
+
+    @Query(value = """
+        SELECT * FROM customers
+        WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+        """, nativeQuery = true)
+    List<Customer> findDeletedCustomers();
+
+    @Query(value = """
+        SELECT * FROM customers
+        WHERE id = :id AND deleted_at IS NOT NULL
+        FOR UPDATE
+        """, nativeQuery = true)
+    java.util.Optional<Customer> findDeletedById(
+            @Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = """
+        UPDATE customers
+        SET deleted_at = NULL, deleted_by = NULL
+        WHERE id = :id AND deleted_at IS NOT NULL
+        """, nativeQuery = true)
+    int restoreDeletedCustomer(@Param("id") Long id);
+
 }

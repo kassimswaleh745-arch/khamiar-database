@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "customers")
+@org.hibernate.annotations.SQLRestriction("deleted_at IS NULL")
 public class Customer {
 
     @Id
@@ -50,6 +51,33 @@ public class Customer {
     private Long routeId;
 
     private Integer ticketCount;
+
+    @Column(name = "booking_reference", length = 50)
+    private String bookingReference;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by", length = 100)
+    private String deletedBy;
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
+    }
+
+
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -102,4 +130,12 @@ public class Customer {
 
     public TicketStatus getTicketStatus() { return ticketStatus; }
     public void setTicketStatus(TicketStatus ticketStatus) { this.ticketStatus = ticketStatus; }
+
+    public String getBookingReference() {
+        return bookingReference;
+    }
+
+    public void setBookingReference(String bookingReference) {
+        this.bookingReference = bookingReference;
+    }
 }

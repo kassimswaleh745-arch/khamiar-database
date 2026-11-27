@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
@@ -15,6 +15,7 @@ const emptyForm = {
   travelDate: "",
   routeId: "",
   ticketCount: "1",
+  bookingReference: "",
 };
 
 export default function CustomerForm({
@@ -33,6 +34,7 @@ export default function CustomerForm({
   const [routes, setRoutes] = useState([]);
   const [routesLoaded, setRoutesLoaded] = useState(false);
   const [returning, setReturning] = useState(0);
+  const lookupVersion = useRef(0);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -74,6 +76,7 @@ export default function CustomerForm({
           travelDate: c.travelDate || "",
           routeId: c.routeId != null ? String(c.routeId) : "",
           ticketCount: String(c.ticketCount || 1),
+          bookingReference: c.bookingReference || "",
         });
       })
       .catch((err) => {
@@ -106,30 +109,40 @@ export default function CustomerForm({
   async function lookupPhone() {
     if (editing) return;
 
-    const phone = form.phone.replace(/\s+/g, "");
+    const version = ++lookupVersion.current;
 
-    if (phone.length < 9) {
+    const parsed = parsePhoneNumberFromString(
+      form.phone.trim(), "TZ"
+    );
+
+    if (!parsed || !parsed.isValid()) {
       setReturning(0);
       return;
     }
 
     try {
-      const list = await api(`/api/customers?search=${encodeURIComponent(phone)}`);
+      const result = await api("/api/customers/lookup-phone", {
+        method: "POST",
+        body: { phone: parsed.number },
+      });
 
-      const same = (Array.isArray(list) ? list : []).filter(
-        (c) => c.phone?.replace(/\s+/g, "") === phone,
-      );
+      if (version !== lookupVersion.current) return;
 
-      setReturning(same.length);
+      setReturning(result.previousBookings || 0);
 
-      if (same.length > 0) {
+      if (result.returningCustomer && result.customerName) {
         setForm((previous) => ({
           ...previous,
-          customerName: previous.customerName.trim() ? previous.customerName : same[0].customerName,
+          customerName:
+            previous.customerName.trim() ||
+            result.customerName,
         }));
       }
+
     } catch {
-      setReturning(0);
+      if (version === lookupVersion.current) {
+        setReturning(0);
+      }
     }
   }
 
@@ -216,6 +229,7 @@ export default function CustomerForm({
       phone: parsedPhone.number,
       routeId: Number(form.routeId),
       ticketCount: quantity,
+      bookingReference: form.bookingReference.trim(),
     };
 
     try {
@@ -236,7 +250,7 @@ export default function CustomerForm({
           state: {
             message: editing
               ? "Customer details updated."
-              : "Customer added and ticket issued.",
+              : "Customer registered successfully!",
           },
         });
       }
@@ -307,6 +321,7 @@ export default function CustomerForm({
                 <InternationalPhoneInput
                   value={form.phone}
                   onChange={(phone) => {
+                    lookupVersion.current++;
                     setForm((previous) => ({
                       ...previous,
                       phone,
@@ -334,7 +349,7 @@ export default function CustomerForm({
                 <div className="col-12 col-md-6 d-flex align-items-end">
                   <div className="text-muted small">
                     <i className="bi bi-person-check me-1" />
-                    Returning customer: {returning} previous ticket(s) with this number.
+                    Returning customer: {returning} previous booking(s) with this number.
                   </div>
                 </div>
               )}
@@ -379,6 +394,13 @@ export default function CustomerForm({
                 )}
               </div>
 
+              {field("bookingReference", "Booking Number (Book ID)", "text", {
+                maxLength: 50,
+                placeholder: "Enter Book ID from ticket",
+                required: false,
+                autoComplete: "off",
+              })}
+
               {field("ticketCount", "Number of tickets", "number", {
                 min: 1,
                 max: 20,
@@ -391,7 +413,6 @@ export default function CustomerForm({
                 <div className="calc-box">
                   <span>Customer amount</span>
                   <strong>{fmt(customerAmount)} TZS</strong>
-                  <small>Calculated from the route price</small>
                 </div>
               </div>
 
@@ -424,7 +445,7 @@ export default function CustomerForm({
               className="btn btn-primary me-2"
               disabled={saving || !routesLoaded}
             >
-              {saving ? "Saving..." : editing ? "Save changes" : "Issue ticket"}
+              {saving ? "Saving..." : editing ? "Save changes" : "Save Customer"}
             </button>
 
             {modal ? (

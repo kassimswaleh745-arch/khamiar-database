@@ -109,12 +109,13 @@ export default function CustomerDetails() {
 
   const rows = [
     ["Phone", c.phone],
+    ["Booking Number", c.bookingReference || "—"],
     ["Route", c.route],
     ["Travel date", c.travelDate],
     ["Tickets", c.ticketCount ?? "—"],
-    (isAdmin
-  ? [["System amount", fmt(c.systemAmount) + " TZS"]]
-  : []),
+    ...(isAdmin
+      ? [["System amount", fmt(c.systemAmount) + " TZS"]]
+      : []),
     ["Added by", c.createdBy || "—"],
     ["Created", new Date(c.createdAt).toLocaleString("en-GB")],
   ];
