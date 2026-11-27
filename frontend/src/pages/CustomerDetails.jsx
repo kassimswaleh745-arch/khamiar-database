@@ -112,7 +112,9 @@ export default function CustomerDetails() {
     ["Route", c.route],
     ["Travel date", c.travelDate],
     ["Tickets", c.ticketCount ?? "—"],
-    ["System amount", fmt(c.systemAmount) + " TZS"],
+    (isAdmin
+  ? [["System amount", fmt(c.systemAmount) + " TZS"]]
+  : []),
     ["Added by", c.createdBy || "—"],
     ["Created", new Date(c.createdAt).toLocaleString("en-GB")],
   ];
@@ -172,20 +174,53 @@ export default function CustomerDetails() {
         </div>
       </div>
 
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-ticket-perforated-fill" tone="blue" label="Tickets" value={c.ticketCount ?? "—"} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-cash-stack" tone="green" label="Customer amount" value={fmt(c.customerAmount) + " TZS"} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-calendar-event" tone="amber" label="Travel date" value={c.travelDate} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-graph-up-arrow" tone={profit < 0 ? "red" : "green"} label="Profit" value={fmt(profit) + " TZS"} />
-        </div>
-      </div>
+          <div className="row g-3 mb-4">
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-ticket-perforated-fill"
+      tone="blue"
+      label="Tickets"
+      value={c.ticketCount ?? "—"}
+    />
+  </div>
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-cash-stack"
+      tone="green"
+      label="Customer amount"
+      value={fmt(c.customerAmount) + " TZS"}
+    />
+  </div>
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-calendar-event"
+      tone="amber"
+      label="Travel date"
+      value={c.travelDate}
+    />
+  </div>
+
+  {isAdmin && (
+    <div className="col-12 col-md-6 col-xl-3">
+      <Mini
+        icon="bi-graph-up-arrow"
+        tone={profit < 0 ? "red" : "green"}
+        label="Profit"
+        value={fmt(profit) + " TZS"}
+      />
+    </div>
+  )}
+
+</div>
 
       <div className="row g-3">
         <div className="col-12 col-xl-7">

@@ -1,0 +1,66 @@
+.international-phone-field {
+  width: 100%;
+}
+
+.khamiar-phone-container {
+  width: 100%;
+}
+
+.khamiar-phone-container .khamiar-phone-input {
+  width: 100%;
+  height: 38px;
+  font-size: 1rem;
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+}
+
+.khamiar-phone-container .khamiar-phone-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
+
+.khamiar-phone-container .khamiar-phone-button {
+  background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color);
+}
+
+.khamiar-phone-container .selected-flag:hover,
+.khamiar-phone-container .selected-flag:focus,
+.khamiar-phone-container .flag-dropdown.open,
+.khamiar-phone-container .flag-dropdown.open .selected-flag {
+  background-color: var(--bs-secondary-bg);
+}
+
+.khamiar-phone-container .khamiar-phone-dropdown {
+  width: min(300px, 75vw);
+  max-height: 240px;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+}
+
+.khamiar-phone-container .country-list .country:hover,
+.khamiar-phone-container .country-list .country.highlight {
+  background-color: var(--bs-secondary-bg);
+}
+
+.khamiar-phone-container .country-list .dial-code {
+  color: var(--bs-secondary-color);
+}
+
+.khamiar-phone-container .country-list .search {
+  background-color: var(--bs-body-bg);
+}
+
+.khamiar-phone-container .search-box {
+  width: 85%;
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+}
+
+.khamiar-phone-container .khamiar-phone-input.is-invalid {
+  border-color: var(--bs-danger);
+}

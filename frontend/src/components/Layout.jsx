@@ -13,12 +13,18 @@ const links = [
   {
     to: "/customers/new",
     label: "Customer Management",
+    adminOnly: true,
     icon: "bi-person-plus-fill",
     match: (p) => p === "/customers/new" || /^\/customers\/\d+\/edit$/.test(p),
   },
   { to: "/tickets", label: "Tickets & Routes", icon: "bi-ticket-perforated-fill", match: (p) => p.startsWith("/tickets") },
-  { to: "/reports", label: "Reports", icon: "bi-file-earmark-bar-graph-fill", match: (p) => p.startsWith("/reports") },
-  { to: "/settings", label: "Settings", icon: "bi-gear-fill", match: (p) => p.startsWith("/settings") },
+  {
+  to: "/reports",
+  label: "Reports",
+  icon: "bi-file-earmark-bar-graph-fill",
+  adminOnly: true,
+  match: (p) => p.startsWith("/reports")
+},
   { to: "/employees", label: "Staff", icon: "bi-person-badge-fill", adminOnly: true, match: (p) => p.startsWith("/employees") },
   { to: "/system", label: "System Control", icon: "bi-shield-lock-fill", adminOnly: true, match: (p) => p.startsWith("/system") },
 ];

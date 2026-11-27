@@ -7,6 +7,20 @@ import { TICKET_PILL } from "../constants.js";
 
 const fmt = (n) => Number(n).toLocaleString("en-US");
 
+const formatTravelDate = (value) => {
+  if (!value) return "—";
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export default function Customers() {
   const { user } = useAuth();
   const isAdmin = user.role === "ADMIN";
@@ -18,6 +32,8 @@ export default function Customers() {
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const load = useCallback(async (term) => {
     try {
@@ -41,6 +57,27 @@ export default function Customers() {
     if (location.state?.message) navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line
   }, []);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(customers.length / pageSize)
+  );
+
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+
+  const visibleCustomers = customers.slice(
+    startIndex,
+    startIndex + pageSize
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setPage((previous) => Math.min(previous, totalPages));
+  }, [totalPages]);
 
   const canEdit = (c) =>
     isAdmin ||
@@ -66,21 +103,75 @@ export default function Customers() {
       {message && <div className="alert alert-success py-2">{message}</div>}
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
+      <div className="mb-4">
+        <p className="text-muted mb-3">
+          View and manage registered customer bookings.
+        </p>
+
+        <div
+          className="card shadow-sm"
+          style={{ maxWidth: 280 }}
+        >
+          <div className="card-body d-flex align-items-center gap-3">
+            <div className="rounded-3 bg-primary-subtle text-primary p-3">
+              <i className="bi bi-people fs-4" />
+            </div>
+
+            <div>
+              <div className="small text-muted fw-semibold">
+                {search.trim() ? "MATCHING RECORDS" : "CUSTOMER RECORDS"}
+              </div>
+
+              <div className="fs-3 fw-bold" aria-live="polite">
+                {loading || error ? "—" : customers.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-        <input
-          className="form-control w-auto"
-          style={{ minWidth: 280 }}
-          placeholder="Search by name or phone..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Link to="/customers/new" className="btn btn-primary">
-          <i className="bi bi-plus-lg me-1" /> Add Customer
-        </Link>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div className="input-group">
+            <span className="input-group-text bg-body">
+              <i className="bi bi-search" aria-hidden="true" />
+            </span>
+
+            <input
+              type="search"
+              className="form-control"
+              placeholder="Search by name or phone..."
+              aria-label="Search customer records"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            {search && (
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                title="Clear search"
+                aria-label="Clear search"
+                onClick={() => setSearch("")}
+              >
+                <i className="bi bi-x-lg" />
+              </button>
+            )}
+          </div>
+        </div>
+        {isAdmin && (
+          <Link to="/customers/new" className="btn btn-primary">
+            <i className="bi bi-plus-lg me-1" /> Add Customer
+          </Link>
+        )}
       </div>
 
       <div className="table-responsive card shadow-sm">
-        <table className="table table-hover align-middle mb-0">
+        <table
+          className="table table-hover align-middle mb-0"
+          style={{ minWidth: isAdmin ? 950 : 850 }}
+          aria-label="Customer booking records"
+        >
           <thead className="table-dark">
             <tr>
               <th>ID</th>
@@ -90,18 +181,71 @@ export default function Customers() {
               <th className="text-end">Tickets</th>
               <th>Status</th>
               <th className="text-end">Amount</th>
+              {isAdmin && (
               <th className="text-end">Profit</th>
+              )}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan="9" className="text-center text-muted py-4">Loading...</td></tr>
+              <tr>
+                <td
+                  colSpan={isAdmin ? 9 : 8}
+                  className="text-center py-5"
+                >
+                  <div
+                    className="spinner-border text-primary mb-3"
+                    role="status"
+                    aria-label="Loading customer records"
+                  />
+
+                  <p className="text-muted mb-0">
+                    Loading customer records...
+                  </p>
+                </td>
+              </tr>
             )}
-            {!loading && customers.length === 0 && (
-              <tr><td colSpan="9" className="text-center text-muted py-4">No customers found</td></tr>
+            {!loading && !error && customers.length === 0 && (
+              <tr>
+                <td
+                  colSpan={isAdmin ? 9 : 8}
+                  className="text-center py-5"
+                >
+                  <i
+                    className={`bi ${
+                      search.trim()
+                        ? "bi-search"
+                        : "bi-folder2-open"
+                    } display-5 text-muted`}
+                    aria-hidden="true"
+                  />
+
+                  <h5 className="mt-3">
+                    {search.trim()
+                      ? "No matching customers found"
+                      : "No customer records available"}
+                  </h5>
+
+                  <p className="text-muted">
+                    {search.trim()
+                      ? "Try a different customer name or phone number."
+                      : "Registered customer bookings will appear here."}
+                  </p>
+
+                  {search.trim() && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => setSearch("")}
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                </td>
+              </tr>
             )}
-            {customers.map((c) => {
+            {visibleCustomers.map((c) => {
               const pill = c.ticketStatus ? TICKET_PILL[c.ticketStatus] : null;
               return (
                 <tr key={c.id} className={c.ticketStatus === "CANCELLED" ? "table-secondary" : ""}>
@@ -111,19 +255,21 @@ export default function Customers() {
                     <div className="small text-muted">{c.phone}</div>
                   </td>
                   <td>{c.route}</td>
-                  <td>{c.travelDate}</td>
+                  <td className="text-nowrap">{formatTravelDate(c.travelDate)}</td>
                   <td className="text-end">{c.ticketCount ?? "—"}</td>
                   <td>{pill ? <span className={"pill " + pill.cls}>{pill.label}</span> : <span className="text-muted">—</span>}</td>
-                  <td className="text-end">{fmt(c.customerAmount)}</td>
-                  <td className={"text-end fw-bold " + (Number(c.profit) < 0 ? "text-danger" : "text-success")}>
-                    {fmt(c.profit)}
-                  </td>
+                  <td className="text-end text-nowrap">{fmt(c.customerAmount)} TZS</td>
+                  {isAdmin && (
+                    <td className={"text-end fw-bold " + (Number(c.profit) < 0 ? "text-danger" : "text-success")}>
+                      {fmt(c.profit)}
+                    </td>
+                  )}
                   <td className="text-nowrap">
-                    <Link className="btn btn-sm btn-outline-secondary me-1" to={`/customers/${c.id}`} title="View profile">
+                    <Link className="btn btn-sm btn-outline-secondary me-1" to={`/customers/${c.id}`} title="View customer details" aria-label="View customer details">
                       <i className="bi bi-eye" />
                     </Link>
                     {canEdit(c) && c.ticketStatus !== "CANCELLED" && (
-                      <Link className="btn btn-sm btn-outline-primary me-1" to={`/customers/${c.id}/edit`} title="Edit">
+                      <Link className="btn btn-sm btn-outline-primary me-1" to={`/customers/${c.id}/edit`} title="Edit customer details" aria-label="Edit customer details">
                         <i className="bi bi-pencil-square" />
                       </Link>
                     )}
@@ -139,6 +285,50 @@ export default function Customers() {
           </tbody>
         </table>
       </div>
+
+      {!loading && !error && customers.length > 0 && (
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
+
+          <small className="text-muted">
+            Showing {startIndex + 1}–
+            {Math.min(startIndex + pageSize, customers.length)}
+            {" of "}{customers.length} records
+          </small>
+
+          <nav
+            className="d-flex align-items-center gap-2"
+            aria-label="Customer records pagination"
+          >
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              disabled={currentPage === 1}
+              onClick={() =>
+                setPage(Math.max(1, currentPage - 1))
+              }
+            >
+              <i className="bi bi-chevron-left me-1" />
+              Previous
+            </button>
+
+            <span className="small fw-semibold">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              disabled={currentPage >= totalPages}
+              onClick={() =>
+                setPage(Math.min(totalPages, currentPage + 1))
+              }
+            >
+              Next
+              <i className="bi bi-chevron-right ms-1" />
+            </button>
+          </nav>
+        </div>
+      )}
     </Layout>
   );
 }

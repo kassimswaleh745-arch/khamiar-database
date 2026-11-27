@@ -21,7 +21,7 @@ public record CustomerRequest(
 
     @NotBlank(message = "Phone number is required")
     @Pattern(
-        regexp = "^\\+?[0-9 ]{9,16}$",
+        regexp = "^\\+?[0-9](?: *[0-9]){8,14}$",
         message = "Enter a valid phone number"
     )
     String phone,

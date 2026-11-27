@@ -26,12 +26,15 @@ public class CustomerService {
     private final TravelRouteRepository routes;
     private final TicketService tickets;
     private final AuditService audit;
+    private final PhoneNumberService phoneNumbers;
     public CustomerService(CustomerRepository repository, TravelRouteRepository routes,
-                           TicketService tickets, AuditService audit) {
+                           TicketService tickets, AuditService audit,
+                           PhoneNumberService phoneNumbers) {
         this.repository = repository;
         this.routes = routes;
         this.tickets = tickets;
         this.audit = audit;
+        this.phoneNumbers = phoneNumbers;
     }
 
     @Transactional(readOnly = true)
@@ -203,8 +206,12 @@ public class CustomerService {
         }
     }
 
-    private static String normalizePhone(String phone) {
-        return phone.replaceAll("\\s+", "");
+    private String normalizePhone(String phone) {
+        try {
+            return phoneNumbers.normalize(phone);
+        } catch (IllegalArgumentException ex) {
+            throw bad(ex.getMessage());
+        }
     }
 
     private static String clean(String value) {

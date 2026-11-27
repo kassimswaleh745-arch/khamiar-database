@@ -34,7 +34,7 @@ export default function App() {
       <Route path="/customers/:id/edit" element={<ProtectedRoute><CustomerForm /></ProtectedRoute>} />
       <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
       <Route path="/tickets/:id" element={<ProtectedRoute><RouteManifest /></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+      <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/employees" element={<AdminRoute><Employees /></AdminRoute>} />
       <Route path="/system" element={<AdminRoute><SystemControl /></AdminRoute>} />

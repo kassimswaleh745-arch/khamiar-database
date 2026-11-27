@@ -354,3 +354,117 @@
 @media (prefers-reduced-motion: reduce) {
   .auth-card, .auth-card * { transition: none !important; }
 }
+
+/* =====================================
+   KHAMIAR LOGIN - INPUT REFINEMENT
+   ===================================== */
+
+.auth-page .auth-field {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    min-height: 64px;
+    background: #f3f8fb;
+    border: 1px solid #c9dfed;
+    border-radius: 14px;
+    transition: background 0.25s ease,
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+}
+
+/* Input focus effect */
+.auth-page .auth-field:focus-within {
+    background: #ffffff;
+    border-color: #2980b9;
+    box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.08);
+}
+
+/* Remove unwanted inner borders */
+.auth-page .auth-field input,
+.auth-page .auth-field input:focus,
+.auth-page .auth-field input:focus-visible,
+.auth-page .auth-field input:active {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    padding: 18px 0;
+    font-size: 17px;
+    color: #173b50;
+}
+
+/* Placeholder */
+.auth-page .auth-field input::placeholder {
+    color: #8ca5b7;
+    opacity: 1;
+}
+
+/* Username and password icons */
+.auth-page .auth-field > i {
+    font-size: 21px;
+    color: #2980b9;
+    flex-shrink: 0;
+}
+
+/* Password visibility button */
+.auth-page .auth-eye {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #607f94;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease,
+                color 0.2s ease;
+}
+
+.auth-page .auth-eye:hover {
+    background: #e8f3fa;
+    color: #2980b9;
+}
+
+.auth-page .auth-eye:focus-visible {
+    outline: 2px solid #2980b9;
+    outline-offset: 2px;
+}
+
+
+/* =====================================
+   KHAMIAR - REMOVE AUTOFILL BACKGROUND
+   ===================================== */
+
+.auth-page .auth-field input:autofill {
+    background-color: transparent !important;
+    color: #173b50 !important;
+    box-shadow: 0 0 0 1000px #f3f8fb inset !important;
+}
+
+.auth-page .auth-field input:-webkit-autofill,
+.auth-page .auth-field input:-webkit-autofill:hover,
+.auth-page .auth-field input:-webkit-autofill:focus,
+.auth-page .auth-field input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #f3f8fb inset !important;
+    -webkit-text-fill-color: #173b50 !important;
+    caret-color: #173b50;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Match background when input is focused */
+.auth-page .auth-field:focus-within input:autofill {
+    box-shadow: 0 0 0 1000px #ffffff inset !important;
+}
+
+.auth-page .auth-field:focus-within input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+}

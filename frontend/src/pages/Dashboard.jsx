@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import CustomerModal from "../components/CustomerModal.jsx";
 import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 
@@ -129,6 +130,9 @@ export default function Dashboard() {
   const isAdmin = user?.role === "ADMIN";
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const today = iso(new Date());
 
   useEffect(() => {
@@ -152,34 +156,57 @@ export default function Dashboard() {
           }
           setData({ summary, customers, users });
         } else {
-          const year = new Date().getFullYear();
-          const report = await api(`/api/reports?from=${year}-01-01&to=${year}-12-31`);
-
+          const [customers, routes] = await Promise.all([
+            api("/api/customers"),
+            api("/api/routes"),
+          ]);
+            //nimefuta report ya empley
           // REKEBISHO: ulinzi dhidi ya report kuwa null
-          if (!report) {
-            setError(
-              "Imeshindwa kupata data kutoka backend. Hakikisha Spring Boot inaendeshwa " +
-                "na umeingia (login).",
-            );
-            return;
+          if (!Array.isArray(customers ) || !Array.isArray(routes)) {
+            throw new Error("Unable to load employee dashboard.");
           }
-          setData({ report });
+          const myCustomers = customers.filter(
+                  (c) =>
+                    c.createdBy &&
+                    c.createdBy.toLowerCase() === user.username.toLowerCase()
+                );
+          setData(
+            {
+              customers: myCustomers,
+              routes,
+            }
+          );
         }
       } catch (err) {
         setError(err.message);
       }
     }
     load();
-  }, [isAdmin]);
+  }, [isAdmin, user.username, refreshKey]);
 
   const actions = (
     <div className="d-flex gap-2 flex-wrap mb-3">
-      <Link to="/customers/new" className="btn btn-primary">
-        <i className="bi bi-plus-lg me-1" /> Add Customer
-      </Link>
+      {isAdmin ? (
+        <Link to="/customers/new" className="btn btn-primary">
+          <i className="bi bi-plus-lg me-1" /> Add Customer
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            setSuccessMessage("");
+            setShowCustomerModal(true);
+          }}
+        >
+          <i className="bi bi-plus-lg me-1" /> Add Customer
+        </button>
+      )}
+      {isAdmin && (
       <Link to="/reports" className="btn btn-outline-primary">
         <i className="bi bi-printer me-1" /> Generate Report
       </Link>
+)}
     </div>
   );
 
@@ -332,73 +359,215 @@ export default function Dashboard() {
   }
 
   /* ---------------- EMPLOYEE ---------------- */
-  const { report } = data;
-  // REKEBISHO: hakikisha rows ni array kila wakati
-  const rows = Array.isArray(report.rows) ? report.rows : [];
-  const travellingToday = rows.filter((r) => r.travelDate === today).length;
-  const recent = [...rows].sort((a, b) => b.id - a.id).slice(0, 6);
-  const year = new Date().getFullYear();
+
+    /* ---------------- EMPLOYEE ---------------- */
+
+  const customers = data.customers || [];
+  const routes = data.routes || [];
+
+  const activeCustomers = customers.filter(
+    (c) => c.ticketStatus !== "CANCELLED"
+  );
+
+  const travellingToday = activeCustomers.filter(
+    (c) => c.travelDate === today
+  ).length;
+
+  const upcomingTrips = activeCustomers.filter(
+    (c) => c.travelDate > today
+  ).length;
+
+  const ticketsIssued = activeCustomers.reduce(
+    (total, c) => total + Number(c.ticketCount || 0),
+    0
+  );
+
+  const availableTickets = routes.reduce(
+    (total, r) => total + Number(r.remaining || 0),
+    0
+  );
+
+  const customersToday = customers.filter(
+    (c) => c.createdAt?.slice(0, 10) === today
+  ).length;
+
+  const recent = [...customers]
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 6);
 
   return (
     <Layout>
-      <h5 className="mb-1">Welcome, {user.username}</h5>
-      <p className="text-muted">Statistics for the customers you added yourself (year {year}).</p>
+      <h5 className="mb-1">
+        Welcome, {user.username}
+      </h5>
+
+      <p className="text-muted">
+        Manage customers, tickets and daily travel activities.
+      </p>
+
+      {successMessage && (
+        <div className="alert alert-success" role="status">
+          <i className="bi bi-check-circle me-2" />
+          {successMessage}
+        </div>
+      )}
+
       {actions}
 
+      {showCustomerModal && (
+        <CustomerModal
+          onClose={() => setShowCustomerModal(false)}
+          onSaved={() => {
+            setShowCustomerModal(false);
+            setSuccessMessage("Customer registered successfully!");
+            setRefreshKey((previous) => previous + 1);
+          }}
+        />
+      )}
+
       <div className="row g-3">
-        <div className="col-12 col-md-6 col-xl-3">
+
+        <div className="col-12 col-md-6 col-xl-4">
           <StatCard
             icon="bi-people-fill"
             tone="blue"
-            title="My Customers"
-            value={fmt(report.count)}
+            title="My Customer Records"
+            value={fmt(customers.length)}
           />
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+
+        <div className="col-12 col-md-6 col-xl-4">
           <StatCard
-            icon="bi-cash-stack"
+            icon="bi-person-plus-fill"
             tone="green"
-            title="My Income"
-            value={fmt(report.totalCustomer)}
-            unit="TZS"
+            title="Customers Added Today"
+            value={fmt(customersToday)}
           />
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+
+        <div className="col-12 col-md-6 col-xl-4">
           <StatCard
-            icon="bi-graph-up-arrow"
-            tone={Number(report.totalProfit) < 0 ? "red" : "green"}
-            title="Profit I generated"
-            value={fmt(report.totalProfit)}
-            unit="TZS"
+            icon="bi-ticket-perforated-fill"
+            tone="blue"
+            title="Non-cancelled Tickets"
+            value={fmt(ticketsIssued)}
           />
         </div>
-        <div className="col-12 col-md-6 col-xl-3">
+
+        <div className="col-12 col-md-6 col-xl-4">
           <StatCard
             icon="bi-airplane-fill"
             tone="amber"
-            title="Travelling today"
+            title="Travelling Today"
             value={fmt(travellingToday)}
           />
         </div>
+
+        <div className="col-12 col-md-6 col-xl-4">
+          <StatCard
+            icon="bi-calendar-check-fill"
+            tone="blue"
+            title="Upcoming Bookings"
+            value={fmt(upcomingTrips)}
+          />
+        </div>
+
+        <div className="col-12 col-md-6 col-xl-4">
+          <StatCard
+            icon="bi-ticket-fill"
+            tone="green"
+            title="Available Tickets"
+            value={fmt(availableTickets)}
+          />
+        </div>
+
       </div>
 
       <div className="section-head">
-        <h5 className="section-title">My Recent Customers</h5>
-        <Link to="/customers" className="btn btn-sm btn-outline-primary">
+        <h5 className="section-title">
+          My Recent Customers
+        </h5>
+
+        <Link
+          to="/customers"
+          className="btn btn-sm btn-outline-primary"
+        >
           View all
         </Link>
       </div>
+
       {recent.length === 0 ? (
-        <p className="text-muted">You have not added any customers this year.</p>
+        <p className="text-muted">
+          You have not registered any customers yet.
+        </p>
       ) : (
         <div className="row g-3">
+
           {recent.map((c) => (
-            <div className="col-12 col-md-6 col-xl-4" key={c.id}>
-              <CustomerCard c={c} today={today} />
+            <div
+              className="col-12 col-md-6 col-xl-4"
+              key={c.id}
+            >
+              <div className="entity-card hover-lift">
+
+                <div className="entity-top">
+                  <div>
+                    <div className="entity-name">
+                      {c.customerName}
+                    </div>
+
+                    <div className="entity-sub">
+                      <i className="bi bi-geo-alt me-1" />
+                      {c.route}
+                    </div>
+                  </div>
+
+                  <span className="pill pill-blue">
+                    {c.ticketStatus || "—"}
+                  </span>
+                </div>
+
+                <div className="my-3">
+
+                  <div className="kv">
+                    <span>Phone</span>
+                    <strong>{c.phone}</strong>
+                  </div>
+
+                  <div className="kv">
+                    <span>Travel date</span>
+                    <strong>{c.travelDate}</strong>
+                  </div>
+
+                  <div className="kv">
+                    <span>Tickets</span>
+                    <strong>{c.ticketCount ?? "—"}</strong>
+                  </div>
+
+                  <div className="kv">
+                    <span>Customer Amount</span>
+                    <strong>
+                      {fmt(c.customerAmount)} TZS
+                    </strong>
+                  </div>
+
+                </div>
+
+                <Link
+                  to={`/customers/${c.id}`}
+                  className="btn btn-sm btn-outline-primary"
+                >
+                  <i className="bi bi-eye me-1" />
+                  View Customer
+                </Link>
+
+              </div>
             </div>
           ))}
+
         </div>
       )}
+
     </Layout>
   );
 }
