@@ -16,7 +16,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-phone-input-2": "^2.15.1",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.11.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

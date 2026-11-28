@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import CustomerModal from "../components/CustomerModal.jsx";
 import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 import { TICKET_PILL } from "../constants.js";
@@ -27,7 +28,13 @@ export default function Customers() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [customers, setCustomers] = useState([]);
+  const [records, setCustomers] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [employee, setEmployee] = useState("");
+  const [route, setRoute] = useState("");
+  const [travelDate, setTravelDate] = useState("");
+  const [status, setStatus] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState(location.state?.message || "");
   const [error, setError] = useState("");
@@ -58,6 +65,36 @@ export default function Customers() {
     // eslint-disable-next-line
   }, []);
 
+
+  const employees = [...new Set(
+    records.map(c => c.createdBy).filter(Boolean)
+  )].sort();
+
+  const routes = [...new Set(
+    records.map(c => c.route).filter(Boolean)
+  )].sort();
+
+  const customers = isAdmin
+    ? records.filter(c =>
+        (!employee || c.createdBy === employee) &&
+        (!route || c.route === route) &&
+        (!travelDate || c.travelDate === travelDate) &&
+        (!status || c.ticketStatus === status)
+      )
+    : records;
+
+  const hasFilters = isAdmin &&
+    Boolean(employee || route || travelDate || status);
+
+  function clearFilters() {
+    setSearch("");
+    setEmployee("");
+    setRoute("");
+    setTravelDate("");
+    setStatus("");
+    setPage(1);
+  }
+
   const totalPages = Math.max(
     1,
     Math.ceil(customers.length / pageSize)
@@ -73,7 +110,7 @@ export default function Customers() {
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, employee, route, travelDate, status]);
 
   useEffect(() => {
     setPage((previous) => Math.min(previous, totalPages));
@@ -86,15 +123,23 @@ export default function Customers() {
       (!c.ticketStatus || c.ticketStatus === "ISSUED"));
 
   async function handleDelete(c) {
-    if (!window.confirm(`Delete customer ${c.customerName}?`)) return;
+    if (!isAdmin || deleting || c.ticketStatus === "USED") return;
+
+    if (!window.confirm(
+      `Move ${c.customerName} to Recycle Bin? This record can be restored later.`
+    )) return;
+
+    setDeleting(true);
     setError("");
     setMessage("");
     try {
       await api(`/api/customers/${c.id}`, { method: "DELETE" });
-      setMessage("Customer deleted.");
+      setMessage("Customer moved to Recycle Bin successfully.");
       await load(search.trim());
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -119,7 +164,7 @@ export default function Customers() {
 
             <div>
               <div className="small text-muted fw-semibold">
-                {search.trim() ? "MATCHING RECORDS" : "CUSTOMER RECORDS"}
+                {(search.trim() || hasFilters) ? "MATCHING RECORDS" : "CUSTOMER RECORDS"}
               </div>
 
               <div className="fs-3 fw-bold" aria-live="polite">
@@ -152,7 +197,7 @@ export default function Customers() {
                 className="btn btn-outline-secondary"
                 title="Clear search"
                 aria-label="Clear search"
-                onClick={() => setSearch("")}
+                onClick={clearFilters}
               >
                 <i className="bi bi-x-lg" />
               </button>
@@ -160,11 +205,112 @@ export default function Customers() {
           </div>
         </div>
         {isAdmin && (
-          <Link to="/customers/new" className="btn btn-primary">
-            <i className="bi bi-plus-lg me-1" /> Add Customer
-          </Link>
+
+          <div className="d-flex gap-2 flex-wrap">
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowModal(true)}
+            >
+              <i className="bi bi-plus-lg me-1" /> Add Customer
+            </button>
+
+            <Link
+              to="/customers/deleted"
+              className="btn btn-outline-danger"
+            >
+              <i className="bi bi-trash me-1" /> Recycle Bin
+            </Link>
+          </div>
         )}
       </div>
+
+
+      {isAdmin && showModal && (
+        <CustomerModal
+          onClose={() => setShowModal(false)}
+          onSaved={() => {
+            setShowModal(false);
+            setMessage("Customer registered successfully!");
+            clearFilters();
+            load("");
+          }}
+        />
+      )}
+
+      {isAdmin && (
+        <div className="card shadow-sm mb-3">
+          <div className="card-body">
+            <h6 className="mb-3">
+              <i className="bi bi-funnel me-2" />
+              Filter Customer Records
+            </h6>
+
+            <div className="row g-3">
+
+              <div className="col-12 col-md-6 col-xl-3">
+                <label className="form-label">Employee</label>
+                <select
+                  className="form-select"
+                  value={employee}
+                  onChange={e => setEmployee(e.target.value)}
+                >
+                  <option value="">All Employees</option>
+                  {employees.map(e =>
+                    <option key={e} value={e}>{e}</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="col-12 col-md-6 col-xl-3">
+                <label className="form-label">Route</label>
+                <select
+                  className="form-select"
+                  value={route}
+                  onChange={e => setRoute(e.target.value)}
+                >
+                  <option value="">All Routes</option>
+                  {routes.map(r =>
+                    <option key={r} value={r}>{r}</option>
+                  )}
+                </select>
+              </div>
+
+              <div className="col-12 col-md-6 col-xl-3">
+                <label className="form-label">Travel Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={travelDate}
+                  onChange={e => setTravelDate(e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-6 col-xl-3">
+                <label className="form-label">Ticket Status</label>
+                <select
+                  className="form-select"
+                  value={status}
+                  onChange={e => setStatus(e.target.value)}
+                >
+                  <option value="">All Statuses</option>
+                  <option value="ISSUED">Issued</option>
+                  <option value="USED">Used</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+            </div>
+
+            <button
+              className="btn btn-sm btn-outline-secondary mt-3"
+              onClick={clearFilters}
+            >
+              <i className="bi bi-arrow-counterclockwise me-1" />
+              Clear All Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="table-responsive card shadow-sm">
         <table
@@ -174,7 +320,7 @@ export default function Customers() {
         >
           <thead className="table-dark">
             <tr>
-              <th>ID</th>
+              <th>No.</th>
               <th>Customer</th>
               <th>Booking Number</th>
               <th>Route</th>
@@ -215,7 +361,7 @@ export default function Customers() {
                 >
                   <i
                     className={`bi ${
-                      search.trim()
+                      (search.trim() || hasFilters)
                         ? "bi-search"
                         : "bi-folder2-open"
                     } display-5 text-muted`}
@@ -223,22 +369,22 @@ export default function Customers() {
                   />
 
                   <h5 className="mt-3">
-                    {search.trim()
+                    {(search.trim() || hasFilters)
                       ? "No matching customers found"
                       : "No customer records available"}
                   </h5>
 
                   <p className="text-muted">
-                    {search.trim()
-                      ? "Try a different name, phone or booking number."
+                    {(search.trim() || hasFilters)
+                      ? "Try a different search or clear the filters."
                       : "Registered customer bookings will appear here."}
                   </p>
 
-                  {search.trim() && (
+                  {(search.trim() || hasFilters) && (
                     <button
                       type="button"
                       className="btn btn-outline-primary btn-sm"
-                      onClick={() => setSearch("")}
+                      onClick={clearFilters}
                     >
                       Clear Search
                     </button>
@@ -246,11 +392,11 @@ export default function Customers() {
                 </td>
               </tr>
             )}
-            {visibleCustomers.map((c) => {
+            {!loading && !error && visibleCustomers.map((c, index) => {
               const pill = c.ticketStatus ? TICKET_PILL[c.ticketStatus] : null;
               return (
                 <tr key={c.id} className={c.ticketStatus === "CANCELLED" ? "table-secondary" : ""}>
-                  <td>{c.id}</td>
+                  <td>{startIndex + index + 1}</td>
                   <td>
                     <div className="fw-semibold">{c.customerName}</div>
                     <div className="small text-muted">{c.phone}</div>
@@ -277,8 +423,8 @@ export default function Customers() {
                         <i className="bi bi-pencil-square" />
                       </Link>
                     )}
-                    {isAdmin && (
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c)} title="Delete">
+                    {isAdmin && c.ticketStatus !== "USED" && (
+                      <button disabled={deleting} className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c)} title="Move to Recycle Bin">
                         <i className="bi bi-trash" />
                       </button>
                     )}

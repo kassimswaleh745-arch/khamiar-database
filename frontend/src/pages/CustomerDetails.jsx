@@ -71,10 +71,13 @@ export default function CustomerDetails() {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete customer ${c.customerName}?`)) return;
+    if (!isAdmin || c.ticketStatus === "USED") return;
+    if (!window.confirm(
+      `Move ${c.customerName} to Recycle Bin? You can restore it later.`
+    )) return;
     try {
       await api(`/api/customers/${c.id}`, { method: "DELETE" });
-      navigate("/customers", { state: { message: "Customer deleted." } });
+      navigate("/customers", { state: { message: "Customer moved to Recycle Bin successfully." } });
     } catch (err) {
       setError(err.message);
     }
@@ -150,9 +153,9 @@ export default function CustomerDetails() {
               Reopen ticket
             </button>
           )}
-          {isAdmin && (
+          {isAdmin && c.ticketStatus !== "USED" && (
             <button className="btn btn-outline-danger" onClick={handleDelete}>
-              <i className="bi bi-trash me-1" /> Delete
+              <i className="bi bi-trash me-1" /> Move to Recycle Bin
             </button>
           )}
         </div>

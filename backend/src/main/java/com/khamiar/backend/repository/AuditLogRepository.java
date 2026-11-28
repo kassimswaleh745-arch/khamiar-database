@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, Long>,
+    org.springframework.data.jpa.repository.JpaSpecificationExecutor<AuditLog> {
 
     List<AuditLog> findAllByOrderByIdDesc(Pageable pageable);
 }

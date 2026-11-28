@@ -37,6 +37,7 @@ public class TokenService {
                 .expiresAt(now.plus(expiryMinutes, ChronoUnit.MINUTES))
                 .subject(user.getUsername())
                 .claim("roles", List.of(user.getRole().name()))
+                .claim("token_version", user.getTokenVersion())
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

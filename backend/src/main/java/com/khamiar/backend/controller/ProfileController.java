@@ -29,6 +29,12 @@ public class ProfileController {
         return service.update(auth.getName(), request);
     }
 
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(Authentication auth) {
+        service.logout(auth.getName());
+    }
+
     @PutMapping("/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication auth) {

@@ -24,6 +24,9 @@ public class User {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion = 0L;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -42,6 +45,14 @@ public class User {
     }
 
     public Long getId() { return id; }
+
+    public long getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void revokeSessions() {
+        this.tokenVersion++;
+    }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login")
                 .permitAll()
 
+
                 // Reports - Admin only
                 .requestMatchers(
                     "/api/reports",
@@ -62,8 +63,69 @@ public class SecurityConfig {
                 .hasRole("ADMIN")
 
                 // System control - Admin only
+                .requestMatchers(HttpMethod.GET, "/api/auth/me")
+                .hasAnyRole("ADMIN", "EMPLOYEE", "DEVELOPER")
+
+                .requestMatchers(HttpMethod.POST, "/api/me/logout")
+                .hasAnyRole("ADMIN", "EMPLOYEE", "DEVELOPER")
+
+                // Personal profile - All authenticated roles
+                .requestMatchers(HttpMethod.GET, "/api/me")
+                .hasAnyRole("ADMIN", "EMPLOYEE", "DEVELOPER")
+
+                .requestMatchers(
+                    HttpMethod.PUT,
+                    "/api/me",
+                    "/api/me/password"
+                )
+                .hasAnyRole("ADMIN", "EMPLOYEE", "DEVELOPER")
+
+                .requestMatchers(HttpMethod.GET, "/api/technical/health")
+                .hasRole("DEVELOPER")
+
+
+.requestMatchers(
+    HttpMethod.GET,
+    "/api/technical/business-overview"
+).hasRole("DEVELOPER")
+
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/technical/customers"
+                ).hasRole("DEVELOPER")
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/technical/routes"
+                ).hasRole("DEVELOPER")
+
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/technical/monitoring/**"
+                ).hasRole("DEVELOPER")
+
+                .requestMatchers("/api/technical/**")
+                .denyAll()
+
+                // System status and maintenance administration
+                .requestMatchers(HttpMethod.GET, "/api/system/status")
+                .hasAnyRole("ADMIN", "DEVELOPER")
+
+                // Temporary compatibility until owner recovery is configured
+                .requestMatchers(HttpMethod.PUT, "/api/system/lock")
+                .hasAnyRole("ADMIN", "DEVELOPER")
+
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/system/maintenance"
+                ).permitAll()
+
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/system/reopening-request"
+                ).hasRole("ADMIN")
+
                 .requestMatchers("/api/system/**")
-                .hasRole("ADMIN")
+                .denyAll()
 
                 // Travel routes - View only for Employee
                 .requestMatchers(
@@ -101,7 +163,7 @@ public class SecurityConfig {
 
                 // Other endpoints require authentication
                 .anyRequest()
-                .authenticated()
+                .hasAnyRole("ADMIN", "EMPLOYEE")
             )
 
             // JWT authentication

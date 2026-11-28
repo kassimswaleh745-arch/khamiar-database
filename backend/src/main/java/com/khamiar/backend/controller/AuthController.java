@@ -75,11 +75,11 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, GENERIC_ERROR);
         }
 
-        // Mfumo ukiwa umefungwa, ni admin pekee anayeingia
-        if (user.getRole() != Role.ADMIN && system.isLocked()) {
+        // Restrict employee login during authorized maintenance
+        if (user.getRole() == Role.EMPLOYEE && system.isLocked()) {
             audit.log(user.getUsername(), "LOGIN_REFUSED", "System is locked", ip);
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "The system is currently locked by the administrator. Please try again later.");
+                    "SYSTEM UNDER MAINTENANCE. KHAMIAR Database Management System is temporarily unavailable due to scheduled maintenance. Please contact the system developer for technical assistance.");
         }
 
         attempts.recordSuccess(identifier);

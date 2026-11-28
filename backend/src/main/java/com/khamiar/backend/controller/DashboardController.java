@@ -25,7 +25,13 @@ public class DashboardController {
     public DashboardResponse get(Authentication auth) {
         boolean admin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        return service.build(auth.getName(), admin);
+        if (!admin) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Administrator access required");
+        }
+
+        return service.build(auth.getName(), true);
     }
 
     @GetMapping("/departures")

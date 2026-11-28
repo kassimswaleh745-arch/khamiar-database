@@ -1,8 +1,10 @@
 package com.khamiar.backend.controller;
 
+import com.khamiar.backend.dto.CreateDeveloperRequest;
 import com.khamiar.backend.dto.CreateUserRequest;
 import com.khamiar.backend.dto.ResetPasswordRequest;
 import com.khamiar.backend.dto.UpdateUserRequest;
+import com.khamiar.backend.dto.UpdateUserProfileRequest;
 import com.khamiar.backend.dto.UserResponse;
 import com.khamiar.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -27,6 +29,14 @@ public class UserController {
         return service.findAll();
     }
 
+
+    @GetMapping("/username-suggestions")
+    public List<String> usernameSuggestions(
+            @RequestParam String fullName) {
+
+        return service.suggestUsernames(fullName);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse create(@Valid @RequestBody CreateUserRequest request, Authentication auth) {
@@ -40,6 +50,20 @@ public class UserController {
         return service.update(id, request, auth.getName());
     }
 
+
+    @PutMapping("/{id}/profile")
+    public UserResponse updateProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserProfileRequest request,
+            Authentication auth) {
+
+        return service.updateProfile(
+                id,
+                request,
+                auth.getName()
+        );
+    }
+
     @PutMapping("/{id}/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void resetPassword(@PathVariable Long id,
@@ -47,4 +71,24 @@ public class UserController {
                               Authentication auth) {
         service.resetPassword(id, request, auth.getName());
     }
+
+    @PutMapping("/{id}/developer/revoke")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeDeveloperAccess(
+            @PathVariable Long id,
+            Authentication auth) {
+
+        service.revokeDeveloperAccess(id, auth.getName());
+    }
+
+
+    @PostMapping("/developer")
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserResponse createDeveloper(
+            @Valid @RequestBody CreateDeveloperRequest request,
+            Authentication auth) {
+
+        return service.createDeveloper(request, auth.getName());
+    }
+
 }

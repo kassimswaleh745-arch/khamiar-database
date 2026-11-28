@@ -25,3 +25,4 @@
 .idea/
 .vscode/
 /backend/config/application-local.properties
+/backend/config/application-local-test.properties
