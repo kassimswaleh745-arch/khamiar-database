@@ -10,4 +10,4 @@ public record ProfileResponse(
         String email,
         String phone,
         Role role,
-        LocalDateTime createdAt) {}
+        LocalDateTime createdAt, boolean emailVerified) {}

@@ -1,3 +1,4 @@
+import Recovery from "./pages/Recovery.jsx";
 import DeveloperMonitoring from "./pages/DeveloperMonitoring.jsx";
 import DeveloperCustomerManagement from "./pages/DeveloperCustomerManagement.jsx";
 import DeveloperCustomers from "./pages/DeveloperCustomers.jsx";
@@ -118,6 +119,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<Recovery mode="forgot-password" />} />
+      <Route path="/reset-password" element={<Recovery mode="reset-password" />} />
+      <Route path="/verify-email" element={<Recovery mode="verify-email" />} />
       <Route path="/developer" element={
         <DeveloperRoute>
           <DeveloperDashboard />

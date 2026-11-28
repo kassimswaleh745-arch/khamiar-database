@@ -35,9 +35,11 @@ public class AuthController {
     private final LoginAttemptService attempts;
     private final AuditService audit;
     private final String dummyHash;
+    private final com.khamiar.backend.service.SessionService sessions;
 
     public AuthController(UserRepository users, PasswordEncoder encoder, TokenService tokens,
-                          SystemService system, LoginAttemptService attempts, AuditService audit) {
+                          SystemService system, LoginAttemptService attempts, AuditService audit, com.khamiar.backend.service.SessionService sessions) {
+        this.sessions = sessions;
         this.users = users;
         this.encoder = encoder;
         this.tokens = tokens;
@@ -48,7 +50,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http, jakarta.servlet.http.HttpServletResponse response) {
         String identifier = request.username().trim();
         String ip = http.getRemoteAddr();
 
@@ -85,6 +87,7 @@ public class AuthController {
         attempts.recordSuccess(identifier);
         audit.log(user.getUsername(), "LOGIN_SUCCESS", null, ip);
 
+        sessions.start(user, request.rememberMe(), http, response);
         return new LoginResponse(
                 tokens.generate(user),
                 user.getUsername(),
@@ -92,6 +95,8 @@ public class AuthController {
                 tokens.getExpiryMinutes());
     }
 
+    @PostMapping("/refresh") public LoginResponse refresh(HttpServletRequest req, jakarta.servlet.http.HttpServletResponse res){return sessions.refresh(req,res);}
+    @PostMapping("/session/logout") public void end(HttpServletRequest req, jakarta.servlet.http.HttpServletResponse res){sessions.end(req,res);}
     /** Inaonyesha nani ameingia */
     @GetMapping("/me")
     public Map<String, Object> me(Authentication auth) {

@@ -92,6 +92,6 @@ public class ProfileService {
 
     private ProfileResponse toResponse(User u) {
         return new ProfileResponse(u.getId(), u.getUsername(), u.getFullName(), u.getEmail(),
-                u.getPhone(), u.getRole(), u.getCreatedAt());
+                u.getPhone(), u.getRole(), u.getCreatedAt(), u.isEmailVerified());
     }
 }

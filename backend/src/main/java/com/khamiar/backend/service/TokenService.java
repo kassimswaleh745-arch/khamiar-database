@@ -18,7 +18,7 @@ public class TokenService {
 
     private final JwtEncoder encoder;
 
-    @Value("${app.jwt.expiry-minutes:480}")
+    @Value("${app.auth.access-token-minutes:15}")
     private long expiryMinutes;
 
     public TokenService(JwtEncoder encoder) {

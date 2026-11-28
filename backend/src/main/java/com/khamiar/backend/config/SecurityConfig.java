@@ -51,6 +51,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**")
                 .permitAll()
 
+                .requestMatchers(HttpMethod.POST, "/api/auth/request-verification").hasAnyRole("ADMIN", "EMPLOYEE", "DEVELOPER")
+                .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/verify-email", "/api/auth/refresh", "/api/auth/session/logout").permitAll()
                 .requestMatchers("/api/auth/login")
                 .permitAll()
 
@@ -193,6 +195,7 @@ public class SecurityConfig {
             "http://127.0.0.1:5174"
         ));
 
+        config.setAllowCredentials(true);
         config.setAllowedMethods(List.of(
             "GET",
             "POST",

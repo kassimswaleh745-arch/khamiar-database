@@ -10,5 +10,5 @@ public record LoginRequest(
 
         @NotBlank(message = "Password is required")
         @Size(max = 100, message = "Password is too long")
-        String password
+        String password, boolean rememberMe
 ) {}

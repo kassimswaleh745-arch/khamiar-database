@@ -11,4 +11,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameIgnoreCase(String username);
     Optional<User> findByEmailIgnoreCase(String email);
     List<User> findByRole(Role role);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from User u where u.id = :id")
+    Optional<User> lockById(@org.springframework.data.repository.query.Param("id") Long id);
+    Optional<User> findByResetHash(String hash);
+    Optional<User> findByVerificationHash(String hash);
 }

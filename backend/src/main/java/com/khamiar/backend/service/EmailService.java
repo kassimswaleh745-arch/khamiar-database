@@ -52,7 +52,7 @@ public class EmailService {
     private void deliver(String to, String subject, String body) {
         JavaMailSender mailSender = sender.getIfAvailable();
         if (!enabled || mailSender == null) {
-            log.info("[EMAIL NOT SENT: mail is not configured] to={} | subject={}\n{}", to, subject, body);
+            log.warn("Email delivery is disabled");
             return;
         }
         try {
@@ -64,7 +64,7 @@ public class EmailService {
             mailSender.send(message);
             log.info("[EMAIL SENT] to={} | subject={}", to, subject);
         } catch (Exception e) {
-            log.warn("[EMAIL FAILED] to={} | subject={} | {}", to, subject, e.getMessage());
+            log.warn("Email delivery failed: {}", e.getClass().getSimpleName());
         }
     }
 }

@@ -11,7 +11,12 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [view, setView] = useState("login"); // "login" | "help"
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(
+    () => localStorage.getItem("khamiar.rememberedUsername") || ""
+  );
+  const [rememberMe, setRememberMe] = useState(
+    () => Boolean(localStorage.getItem("khamiar.rememberedUsername"))
+  );
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
@@ -29,7 +34,18 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(username.trim(), password);
+      await login(username.trim(), password, rememberMe);
+      try {
+        if (rememberMe) {
+          localStorage.setItem(
+            "khamiar.rememberedUsername", username.trim()
+          );
+        } else {
+          localStorage.removeItem("khamiar.rememberedUsername");
+        }
+      } catch {
+        // Storage availability must not affect login.
+      }
       navigate("/", { replace: true });
     } catch (err) {
       setError(err.message);
@@ -46,10 +62,14 @@ export default function Login() {
     <div className="auth-page">
       <main className={"auth-card" + (helpOpen ? " help-active" : "")}>
         {/* Sign in */}
-        <section className="auth-form-panel auth-login-panel">
+        <section className="auth-form-panel auth-login-panel" inert={helpOpen} aria-hidden={helpOpen}>
           <MaintenanceNotice />
-          <h1>Sign in</h1>
-          <p className="auth-lead">Welcome back. Enter your details to continue.</p>
+          <div className="auth-secure">
+            <i className="bi bi-shield-lock" /> Secure Sign In
+          </div>
+          <h1>Welcome back.</h1>
+          <div className="auth-accent" aria-hidden="true" />
+          <p className="auth-lead">Access your KHAMIAR workspace to manage customer records, travel information and daily business operations.</p>
 
           {error && (
             <div className={"auth-alert" + (lockedOut ? " warn" : "")} role="alert">
@@ -58,14 +78,14 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <label htmlFor="login-id" className="visually-hidden">Username</label>
+            <label htmlFor="login-id" className="auth-label">Username</label>
             <div className="auth-field">
               <i className="bi bi-person" aria-hidden="true" />
               <input
                 id="login-id"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
+                placeholder="Enter your username"
                 autoComplete="username"
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -74,7 +94,7 @@ export default function Login() {
               />
             </div>
 
-            <label htmlFor="login-password" className="visually-hidden">Password</label>
+            <label htmlFor="login-password" className="auth-label">Password</label>
             <div className="auth-field">
               <i className="bi bi-lock" aria-hidden="true" />
               <input
@@ -84,7 +104,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyUp={(e) => setCapsOn(Boolean(e.getModifierState && e.getModifierState("CapsLock")))}
                 onBlur={() => setCapsOn(false)}
-                placeholder="Password"
+                placeholder="Enter your password"
                 autoComplete="current-password"
                 required
               />
@@ -99,21 +119,62 @@ export default function Login() {
             </div>
             {capsOn && <div className="auth-caps"><i className="bi bi-exclamation-triangle me-1" />Caps Lock is on</div>}
 
-            <button className="auth-btn" disabled={loading}>
+            <div className="auth-options">
+              <label className="auth-remember">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => {
+                    setRememberMe(e.target.checked);
+                    if (!e.target.checked) {
+                      localStorage.removeItem("khamiar.rememberedUsername");
+                    }
+                  }}
+                />
+                Remember me
+              </label>
+
+              <button
+                type="button"
+                className="auth-text-btn"
+                onClick={() => navigate("/forgot-password")}
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <button type="submit" className="auth-btn" disabled={loading}>
+              {!loading && <i className="bi bi-box-arrow-in-right me-2" aria-hidden="true" />}
               {loading && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
-              {loading ? "Signing in..." : "LOGIN"}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <button type="button" className="auth-mobile-switch" onClick={() => setView("help")}>
-            Need access?
+          <button
+            type="button"
+            className="auth-access-card"
+            onClick={() => setView("help")}
+          >
+            <span className="auth-access-icon">
+              <i className="bi bi-person-plus" aria-hidden="true" />
+            </span>
+
+            <span className="auth-access-copy">
+              <strong>Need access?</strong>
+              <small>
+                Contact your system administrator to request an authorized account.
+              </small>
+            </span>
+
+            <i className="bi bi-chevron-right" aria-hidden="true" />
           </button>
-          <div className="auth-foot">&copy; {new Date().getFullYear()} KH Enterprises Ltd</div>
+          <div className="auth-foot">&copy; {new Date().getFullYear()} KH Enterprises Ltd. All rights reserved.</div>
         </section>
 
         {/* Need access? */}
-        <section className="auth-form-panel auth-help-panel">
+        <section className="auth-form-panel auth-help-panel" inert={!helpOpen} aria-hidden={!helpOpen}>
           <h1>Need access?</h1>
+          <div className="auth-accent" aria-hidden="true" />
           <p className="auth-lead">
             Accounts are created by the system administrator. Public sign-up is turned off to keep customer data private.
           </p>
@@ -154,16 +215,57 @@ export default function Login() {
 
         {/* Sliding panel */}
         <aside className="auth-welcome">
-          <div className="auth-welcome-content auth-welcome-login">
-            <img className="auth-logo" src={LOGO} alt="KA Enterprises Ltd" />
-            <h2>KHAMIAR DATABASE</h2>
-            <p>Customer and ticket management for your team.</p>
-            <button type="button" className="auth-outline-btn" onClick={() => setView("help")}>
-              Need access?
-            </button>
+
+          <div className="auth-welcome-content auth-welcome-login" inert={helpOpen} aria-hidden={helpOpen}>
+            <div className="maritime-brand">
+              <img className="auth-logo" src={LOGO}
+                   alt="KH Enterprises Ltd" />
+              <div>
+                <h2>KHAMIAR DATABASE</h2>
+                <small>Customer and Ticket Management System</small>
+              </div>
+            </div>
+
+            <div className="maritime-intro">
+              <h2>Manage smarter.<br />
+                <span>Sail better.</span>
+              </h2>
+              <p>
+                Simplify your daily operations with one connected platform. Manage customer records, organize travel information, monitor ticket availability and keep your business running efficiently.
+              </p>
+            </div>
+
+            <div className="maritime-features">
+              <div>
+                <i className="bi bi-people" />
+                <span>Customer Records</span>
+              </div>
+              <div>
+                <i className="bi bi-ticket-perforated" />
+                <span>Tickets &amp; Routes</span>
+              </div>
+              <div>
+                <i className="bi bi-bar-chart" />
+                <span>Business Management</span>
+              </div>
+            </div>
+
+
+
+
+
+            <div className="maritime-footer">
+              <span>
+                <i className="bi bi-building" /> KH Enterprises Ltd
+              </span>
+              <span>
+                <i className="bi bi-geo-alt" /> Zanzibar, Tanzania
+              </span>
+            </div>
           </div>
-          <div className="auth-welcome-content auth-welcome-help">
-            <img className="auth-logo" src={LOGO} alt="KA Enterprises Ltd" />
+
+          <div className="auth-welcome-content auth-welcome-help" inert={!helpOpen} aria-hidden={!helpOpen}>
+            <img className="auth-logo" src={LOGO} alt="KH Enterprises Ltd" />
             <h2>Already have an account?</h2>
             <p>Sign in with your username.</p>
             <button type="button" className="auth-outline-btn" onClick={() => setView("login")}>

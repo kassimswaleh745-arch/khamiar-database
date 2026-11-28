@@ -72,11 +72,11 @@ export default function Settings() {
 
   const validEmail =
     !form.email.trim() ||
-    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email.trim());
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
 
   const validPhone =
     !form.phone.trim() ||
-    /^\\+?[0-9][0-9 ()-]{6,28}$/.test(form.phone.trim());
+    /^\+?[0-9][0-9 ()-]{6,28}$/.test(form.phone.trim());
 
   const validProfile = validName && validEmail && validPhone;
 
@@ -311,6 +311,7 @@ export default function Settings() {
               <div className="row">
                 <div className="col-md-6">
                   {field("email", "Email", "email", 150, validEmail)}
+                  <EmailVerification profile={profile} />
                 </div>
                 <div className="col-md-6">
                   {field("phone", "Phone", "tel", 30, validPhone)}
@@ -416,4 +417,10 @@ export default function Settings() {
       </div>
     </Layout>
   );
+}
+
+function EmailVerification({profile}) {
+ const [password,setPassword]=useState("");const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
+ if(profile?.emailVerified)return <p className="text-success">Email verified</p>;
+ return <div className="mb-3"><p>Email not verified. Save your email first.</p><label className="form-label">Current password<input type="password" autoComplete="current-password" className="form-control" value={password} onChange={e=>setPassword(e.target.value)}/></label><button type="button" className="btn btn-outline-primary ms-2" disabled={!password||busy} onClick={async()=>{setBusy(true);try{await api("/api/auth/request-verification",{method:"POST",body:{password}});setMessage("Check your saved email for a verification link.");}catch(e){setMessage(e.message);}finally{setPassword("");setBusy(false);}}}>Verify email</button><p role="status">{message}</p></div>;
 }
