@@ -9,7 +9,9 @@ export function clearSession() {
 export async function api(path, { method = "GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
   const token = localStorage.getItem("token");
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token && path !== "/api/system/maintenance") {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   let res;
   try {

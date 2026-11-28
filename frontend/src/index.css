@@ -310,3 +310,724 @@ body {
 [data-bs-theme="dark"] .table-light { --bs-table-bg: #1b2744; --bs-table-color: #e6ebf7; --bs-table-border-color: #25314d; }
 [data-bs-theme="dark"] .table-secondary { --bs-table-bg: #1a2238; --bs-table-color: #93a0c0; }
 [data-bs-theme="dark"] .bg-light { background-color: #1b2744 !important; }
+
+/* =========================================
+   KHAMIAR GLOBAL SIDEBAR TOGGLE
+   ========================================= */
+
+.khamiar-sidebar-toggle {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d6deea;
+  border-radius: 9px;
+  background: #f4f7fb;
+  color: #123b52;
+  font-size: 23px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.khamiar-sidebar-toggle:hover {
+  background: #e4edf5;
+}
+
+.khamiar-sidebar-toggle:focus-visible {
+  outline: 3px solid #80b5e5;
+  outline-offset: 2px;
+}
+
+@media screen and (min-width: 992px) {
+
+  .khamiar-layout .sidebar {
+    transition: width 0.25s ease;
+  }
+
+  .khamiar-layout .app-main {
+    transition: margin-left 0.25s ease;
+  }
+
+  .khamiar-layout.sidebar-collapsed {
+    --sidebar-w: 76px;
+  }
+
+  .sidebar-collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 18px 8px;
+  }
+
+  .sidebar-collapsed .sidebar-brand > div {
+    display: none;
+  }
+
+  .sidebar-collapsed .brand-logo {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+  }
+
+  .sidebar-collapsed .side-link {
+    justify-content: center;
+    padding: 12px 8px;
+    gap: 0;
+  }
+
+  .sidebar-collapsed .side-link span {
+    display: none;
+  }
+
+  .sidebar-collapsed .side-link i {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  .sidebar-collapsed .user-chip {
+    justify-content: center;
+  }
+
+  .sidebar-collapsed .user-chip > div:not(.avatar) {
+    display: none;
+  }
+
+  .sidebar-collapsed .sidebar-footer {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .khamiar-layout .sidebar,
+  .khamiar-layout .app-main {
+    transition: none;
+  }
+}
+
+
+/* Employee username suggestions */
+
+.username-suggestions {
+  padding: 12px;
+  border: 1px solid #dce5ed;
+  border-radius: 9px;
+  background: #f6f9fc;
+}
+
+.username-suggestions .btn {
+  border-radius: 7px;
+  padding: 6px 12px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.username-suggestions .btn:hover {
+  transition: background-color 0.15s ease;
+}
+
+.modal .input-group-text {
+  background: #f5f7fa;
+  color: #526579;
+}
+
+.modal .form-control,
+.modal .form-select {
+  min-height: 42px;
+}
+
+.modal .input-group .btn {
+  min-height: 42px;
+}
+
+
+/* KHAMIAR Management Modal */
+
+.management-modal {
+  width: min(620px, 94vw);
+  max-height: 90vh;
+  padding: 0;
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  color: #243447;
+  box-shadow: 0 20px 60px rgba(0,0,0,.22);
+  overflow-y: auto;
+}
+
+.management-modal::backdrop {
+  background: rgba(8,15,35,.55);
+}
+
+.management-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.management-modal-body {
+  padding: 24px;
+}
+
+.management-modal .form-control,
+.management-modal .form-select {
+  min-height: 42px;
+}
+
+.management-modal .form-label {
+  font-weight: 600;
+}
+
+.management-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 20px;
+}
+
+
+/* Stock History Management */
+
+.management-modal:has(.stock-history) {
+  width: min(1050px, 95vw);
+}
+
+.stock-history table {
+  min-width: 750px;
+}
+
+.stock-history td {
+  overflow-wrap: anywhere;
+}
+
+.stock-history .badge {
+  white-space: nowrap;
+}
+
+
+/* =========================================
+   KHAMIAR RESPONSIVE REPORTS
+   ========================================= */
+
+@media screen {
+
+  .report-table {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .report-table th,
+  .report-table td {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .report-head > div,
+  .report-meta > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+}
+
+/* Tablet and mobile report cards */
+
+@media screen and (max-width: 1199.98px) {
+
+  .report-table,
+  .report-table tbody,
+  .report-table tfoot {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .report-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .report-table tbody tr,
+  .report-table tfoot tr {
+    display: block;
+    margin-bottom: 16px;
+    border: 1px solid #dbe5ef;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .report-table tbody td,
+  .report-table tfoot td {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 42%) minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    padding: 12px 14px;
+    width: 100% !important;
+    text-align: right !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid #e8edf3;
+  }
+
+  .report-table td::before {
+    content: attr(data-label);
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .report-table tbody td:first-child {
+    background: #eaf3f8;
+    font-weight: 700;
+  }
+
+  .report-table tbody td:last-child,
+  .report-table tfoot td:last-child {
+    border-bottom: none;
+  }
+
+  .report-table tfoot tr {
+    background: #e3f1f8;
+    font-weight: 700;
+  }
+
+  .report-table tfoot td:empty {
+    display: none;
+  }
+
+  .report-table tbody td[colspan] {
+    display: block;
+    text-align: center !important;
+  }
+
+  .report-meta {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+}
+
+@media screen and (max-width: 575.98px) {
+
+  .report-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .report-head {
+    flex-wrap: wrap;
+  }
+
+  .report-head h4 {
+    font-size: 1.1rem;
+  }
+
+  .report-table tbody td,
+  .report-table tfoot td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+}
+
+/* Preserve official printed report */
+
+@media print {
+
+  .report-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .report-table thead {
+    display: table-header-group !important;
+  }
+
+  .report-table tbody {
+    display: table-row-group !important;
+  }
+
+  .report-table tfoot {
+    display: table-footer-group !important;
+  }
+
+  .report-table tr {
+    display: table-row !important;
+  }
+
+  .report-table th,
+  .report-table td {
+    display: table-cell !important;
+    font-size: 9pt;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .report-table td::before {
+    display: none !important;
+  }
+
+}
+
+
+/* ========================================
+   PROFESSIONAL FINANCIAL REPORTS
+   ======================================== */
+
+.financial-page-heading {
+  padding: 22px;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 14px;
+  background: var(--bs-body-bg, #fff);
+  border-left: 5px solid #0d6efd;
+}
+
+.financial-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.financial-monthly-print {
+  display: none;
+}
+
+@media screen and (max-width: 575.98px) {
+  .financial-page-heading {
+    padding: 16px;
+  }
+
+  .financial-page-heading h2 {
+    font-size: 1.4rem;
+  }
+}
+
+@media print {
+
+  .financial-monthly-print {
+    display: block !important;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+
+  .financial-print-page {
+    width: 100%;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .financial-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .financial-print-page thead {
+    display: table-header-group;
+  }
+
+  .financial-print-page tfoot {
+    display: table-row-group;
+  }
+
+  .financial-print-page tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .financial-print-page .sign-row {
+    break-inside: avoid;
+    margin-top: 35px;
+  }
+
+  .financial-print-page table {
+    width: 100%;
+    font-size: 9pt;
+  }
+}
+
+
+/* ========================================
+   AUDIT LOGS MANAGEMENT
+   ======================================== */
+
+.audit-page {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.audit-table {
+  width: 100%;
+  min-width: 0 !important;
+}
+
+.audit-table th,
+.audit-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+.audit-table .badge {
+  white-space: normal;
+  line-height: 1.4;
+  text-align: left;
+}
+
+@media screen and (max-width: 1199.98px) {
+
+  .audit-table,
+  .audit-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .audit-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .audit-table tbody tr {
+    display: block;
+    width: 100%;
+    margin-bottom: 14px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .audit-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(0, 35%) minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+    width: 100%;
+    text-align: right;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  }
+
+  .audit-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .audit-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .audit-table tbody td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  .audit-table tbody td[colspan]::before {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 575.98px) {
+
+  .audit-page .card-body {
+    padding: 14px;
+  }
+
+  .audit-table tbody td {
+    font-size: 13px;
+  }
+
+  .audit-page .btn {
+    white-space: normal;
+  }
+}
+
+
+/* KHAMIAR Professional Dashboard */
+
+.dashboard-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dashboard-table {
+  font-size: 0.875rem;
+}
+
+.dashboard-table thead th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+  padding: 14px 12px;
+}
+
+.dashboard-table td {
+  padding: 12px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.dashboard-route {
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dashboard-route:last-child {
+  border-bottom: 0;
+}
+
+.dashboard-progress {
+  height: 9px;
+  background: #dcfce7;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0 5px;
+}
+
+.dashboard-progress span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 10px;
+}
+
+.dashboard-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+.dashboard-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+}
+
+.legend-revenue::before,
+.bar-revenue {
+  background: #2563eb;
+}
+
+.legend-cost::before,
+.bar-cost {
+  background: #f59e0b;
+}
+
+.legend-profit::before,
+.bar-profit {
+  background: #16a34a;
+}
+
+.bar-loss {
+  background: #dc2626;
+}
+
+.dashboard-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 5px;
+  padding: 12px 0;
+}
+
+.dashboard-month {
+  min-width: 0;
+  text-align: center;
+}
+
+.dashboard-month small {
+  font-size: 10px;
+}
+
+.dashboard-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  height: 180px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.dashboard-bar {
+  width: 27%;
+  max-width: 18px;
+  border-radius: 3px 3px 0 0;
+}
+
+@media screen and (max-width: 767px) {
+  .dashboard-table {
+    min-width: 0 !important;
+  }
+
+  .dashboard-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .dashboard-table tbody,
+  .dashboard-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .dashboard-table tr {
+    padding: 12px;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
+  .dashboard-table td {
+    display: grid;
+    grid-template-columns: 40% minmax(0, 1fr);
+    gap: 8px;
+    border: 0;
+    padding: 7px 0;
+  }
+
+  .dashboard-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  .dashboard-table td .btn,
+  .dashboard-table td .pill {
+    justify-self: start;
+  }
+
+  .dashboard-bars {
+    height: 130px;
+  }
+
+  .dashboard-chart {
+    gap: 2px;
+  }
+}

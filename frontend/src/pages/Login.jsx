@@ -1,3 +1,4 @@
+import MaintenanceNotice from "../components/MaintenanceNotice.jsx";
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
@@ -46,6 +47,7 @@ export default function Login() {
       <main className={"auth-card" + (helpOpen ? " help-active" : "")}>
         {/* Sign in */}
         <section className="auth-form-panel auth-login-panel">
+          <MaintenanceNotice />
           <h1>Sign in</h1>
           <p className="auth-lead">Welcome back. Enter your details to continue.</p>
 
@@ -121,7 +123,7 @@ export default function Login() {
               <span className="auth-step-no">1</span>
               <div>
                 <strong>Contact your administrator</strong>
-                Give your full name and your email address (used for leave notifications only).
+                Provide your full name and email address.
               </div>
             </li>
             <li>

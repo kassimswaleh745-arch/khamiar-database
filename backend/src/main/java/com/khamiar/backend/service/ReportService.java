@@ -43,13 +43,16 @@ public class ReportService {
 
         // Employee anaona zake tu (inalazimishwa hapa, si kwenye React).
         // Admin anaweza kuchagua mfanyakazi, au kuacha wazi kuona wote.
-        String employee;
+
         if (!admin) {
-            employee = username;
-        } else {
-            employee = (requestedEmployee == null || requestedEmployee.isBlank())
-                    ? null : requestedEmployee.trim();
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Financial reports are restricted to administrators");
         }
+
+        String employee =
+                (requestedEmployee == null || requestedEmployee.isBlank())
+                ? null : requestedEmployee.trim();
 
         List<Customer> customers = (employee == null)
                 ? repository.findByTravelDateBetweenOrderByTravelDateAscIdAsc(from, to)

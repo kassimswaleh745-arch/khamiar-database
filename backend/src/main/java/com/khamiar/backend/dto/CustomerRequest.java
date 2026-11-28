@@ -21,7 +21,7 @@ public record CustomerRequest(
 
     @NotBlank(message = "Phone number is required")
     @Pattern(
-        regexp = "^\\+?[0-9 ]{9,16}$",
+        regexp = "^\\+?[0-9](?: *[0-9]){8,14}$",
         message = "Enter a valid phone number"
     )
     String phone,
@@ -36,6 +36,9 @@ public record CustomerRequest(
     @NotNull(message = "Number of tickets is required")
     @Min(value = 1, message = "At least 1 ticket is required")
     @Max(value = 20, message = "At most 20 tickets per customer")
-    Integer ticketCount
+    Integer ticketCount,
+
+    @Size(max = 50, message = "Booking number is too long")
+    String bookingReference
 
 ) {}

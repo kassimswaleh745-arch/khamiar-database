@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import InternationalPhoneInput from "../components/InternationalPhoneInput.jsx";
 import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 import { openPicker, todayIso } from "../constants.js";
@@ -13,11 +15,16 @@ const emptyForm = {
   travelDate: "",
   routeId: "",
   ticketCount: "1",
+  bookingReference: "",
 };
 
-export default function CustomerForm() {
+export default function CustomerForm({
+  modal = false,
+  onSaved,
+  onCancel,
+}) {
   const { id } = useParams();
-  const editing = Boolean(id);
+  const editing = !modal && Boolean(id);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
@@ -27,6 +34,7 @@ export default function CustomerForm() {
   const [routes, setRoutes] = useState([]);
   const [routesLoaded, setRoutesLoaded] = useState(false);
   const [returning, setReturning] = useState(0);
+  const lookupVersion = useRef(0);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -68,6 +76,7 @@ export default function CustomerForm() {
           travelDate: c.travelDate || "",
           routeId: c.routeId != null ? String(c.routeId) : "",
           ticketCount: String(c.ticketCount || 1),
+          bookingReference: c.bookingReference || "",
         });
       })
       .catch((err) => {
@@ -100,30 +109,40 @@ export default function CustomerForm() {
   async function lookupPhone() {
     if (editing) return;
 
-    const phone = form.phone.replace(/\s+/g, "");
+    const version = ++lookupVersion.current;
 
-    if (phone.length < 9) {
+    const parsed = parsePhoneNumberFromString(
+      form.phone.trim(), "TZ"
+    );
+
+    if (!parsed || !parsed.isValid()) {
       setReturning(0);
       return;
     }
 
     try {
-      const list = await api(`/api/customers?search=${encodeURIComponent(phone)}`);
+      const result = await api("/api/customers/lookup-phone", {
+        method: "POST",
+        body: { phone: parsed.number },
+      });
 
-      const same = (Array.isArray(list) ? list : []).filter(
-        (c) => c.phone?.replace(/\s+/g, "") === phone,
-      );
+      if (version !== lookupVersion.current) return;
 
-      setReturning(same.length);
+      setReturning(result.previousBookings || 0);
 
-      if (same.length > 0) {
+      if (result.returningCustomer && result.customerName) {
         setForm((previous) => ({
           ...previous,
-          customerName: previous.customerName.trim() ? previous.customerName : same[0].customerName,
+          customerName:
+            previous.customerName.trim() ||
+            result.customerName,
         }));
       }
+
     } catch {
-      setReturning(0);
+      if (version === lookupVersion.current) {
+        setReturning(0);
+      }
     }
   }
 
@@ -169,8 +188,15 @@ export default function CustomerForm() {
       errors.customerName = "Customer name is required";
     }
 
+    const parsedPhone = parsePhoneNumberFromString(
+      form.phone.trim(),
+      "TZ"
+    );
+
     if (!form.phone.trim()) {
       errors.phone = "Phone number is required";
+    } else if (!parsedPhone || !parsedPhone.isValid()) {
+      errors.phone = "Enter a valid phone number for the selected country";
     }
 
     if (!form.travelDate) {
@@ -200,9 +226,10 @@ export default function CustomerForm() {
     const body = {
       customerName: form.customerName.trim(),
       travelDate: form.travelDate,
-      phone: form.phone.trim(),
+      phone: parsedPhone.number,
       routeId: Number(form.routeId),
       ticketCount: quantity,
+      bookingReference: form.bookingReference.trim(),
     };
 
     try {
@@ -216,11 +243,17 @@ export default function CustomerForm() {
             body,
           });
 
-      navigate(`/customers/${saved.id}`, {
-        state: {
-          message: editing ? "Customer details updated." : "Customer added and ticket issued.",
-        },
-      });
+      if (modal) {
+        onSaved?.(saved);
+      } else {
+        navigate(`/customers/${saved.id}`, {
+          state: {
+            message: editing
+              ? "Customer details updated."
+              : "Customer registered successfully!",
+          },
+        });
+      }
     } catch (err) {
       setError(err.message || "Unable to save customer");
       setFieldErrors(err.errors || {});
@@ -260,8 +293,10 @@ export default function CustomerForm() {
     );
   }
 
+  const Wrapper = modal ? "div" : Layout;
+
   return (
-    <Layout>
+    <Wrapper>
       {error && (
         <div className="alert alert-danger py-2" role="alert">
           {error}
@@ -270,7 +305,11 @@ export default function CustomerForm() {
 
       <div className="card">
         <div className="card-body">
-          <h5 className="card-title mb-4">{editing ? `Edit Customer #${id}` : "Add Customer"}</h5>
+          {!modal && (
+            <h5 className="card-title mb-4">
+              {editing ? `Edit Customer #${id}` : "Add Customer"}
+            </h5>
+          )}
 
           <form onSubmit={handleSubmit}>
             <h6 className="section-label">Customer details</h6>
@@ -278,10 +317,28 @@ export default function CustomerForm() {
             <div className="row g-3 mb-4">
               {field("customerName", "Customer name")}
 
-              {field("phone", "Phone number", "tel", {
-                placeholder: "0712345678",
-                onBlur: lookupPhone,
-              })}
+              <div className="col-12 col-md-6">
+                <InternationalPhoneInput
+                  value={form.phone}
+                  onChange={(phone) => {
+                    lookupVersion.current++;
+                    setForm((previous) => ({
+                      ...previous,
+                      phone,
+                    }));
+
+                    setFieldErrors((previous) => ({
+                      ...previous,
+                      phone: undefined,
+                    }));
+
+                    setReturning(0);
+                  }}
+                  onBlur={lookupPhone}
+                  error={fieldErrors.phone}
+                  disabled={saving}
+                />
+              </div>
 
               {field("travelDate", "Travel date", "date", {
                 min: minDate,
@@ -292,7 +349,7 @@ export default function CustomerForm() {
                 <div className="col-12 col-md-6 d-flex align-items-end">
                   <div className="text-muted small">
                     <i className="bi bi-person-check me-1" />
-                    Returning customer: {returning} previous ticket(s) with this number.
+                    Returning customer: {returning} previous booking(s) with this number.
                   </div>
                 </div>
               )}
@@ -337,6 +394,13 @@ export default function CustomerForm() {
                 )}
               </div>
 
+              {field("bookingReference", "Booking Number (Book ID)", "text", {
+                maxLength: 50,
+                placeholder: "Enter Book ID from ticket",
+                required: false,
+                autoComplete: "off",
+              })}
+
               {field("ticketCount", "Number of tickets", "number", {
                 min: 1,
                 max: 20,
@@ -349,7 +413,6 @@ export default function CustomerForm() {
                 <div className="calc-box">
                   <span>Customer amount</span>
                   <strong>{fmt(customerAmount)} TZS</strong>
-                  <small>Calculated from the route price</small>
                 </div>
               </div>
 
@@ -382,18 +445,29 @@ export default function CustomerForm() {
               className="btn btn-primary me-2"
               disabled={saving || !routesLoaded}
             >
-              {saving ? "Saving..." : editing ? "Save changes" : "Issue ticket"}
+              {saving ? "Saving..." : editing ? "Save changes" : "Save Customer"}
             </button>
 
-            <Link
-              to={editing ? `/customers/${id}` : "/customers"}
-              className="btn btn-outline-secondary"
-            >
-              Cancel
-            </Link>
+            {modal ? (
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={onCancel}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            ) : (
+              <Link
+                to={editing ? `/customers/${id}` : "/customers"}
+                className="btn btn-outline-secondary"
+              >
+                Cancel
+              </Link>
+            )}
           </form>
         </div>
       </div>
-    </Layout>
+    </Wrapper>
   );
 }

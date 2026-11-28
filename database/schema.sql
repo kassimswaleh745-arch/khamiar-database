@@ -20,6 +20,7 @@
 -- Table structure for table `audit_logs`
 --
 
+DROP TABLE IF EXISTS `audit_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `audit_logs` (
@@ -30,13 +31,14 @@ CREATE TABLE `audit_logs` (
   `details` varchar(500) DEFAULT NULL,
   `ip` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `customers`
 --
 
+DROP TABLE IF EXISTS `customers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `customers` (
@@ -53,16 +55,20 @@ CREATE TABLE `customers` (
   `route_id` bigint(20) DEFAULT NULL,
   `system_amount` decimal(12,2) NOT NULL,
   `ticket_count` int(11) DEFAULT NULL,
+  `booking_reference` varchar(50) DEFAULT NULL,
   `ticket_status` enum('CANCELLED','ISSUED','USED') DEFAULT NULL,
   `travel_date` date NOT NULL,
+  `deleted_at` datetime(6) DEFAULT NULL,
+  `deleted_by` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `system_settings`
 --
 
+DROP TABLE IF EXISTS `system_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `system_settings` (
@@ -76,6 +82,7 @@ CREATE TABLE `system_settings` (
 -- Table structure for table `ticket_stock`
 --
 
+DROP TABLE IF EXISTS `ticket_stock`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket_stock` (
@@ -86,13 +93,14 @@ CREATE TABLE `ticket_stock` (
   `quantity` int(11) NOT NULL,
   `route_id` bigint(20) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `travel_routes`
 --
 
+DROP TABLE IF EXISTS `travel_routes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `travel_routes` (
@@ -104,13 +112,14 @@ CREATE TABLE `travel_routes` (
   `system_price` decimal(12,2) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKp7gxnbdphuli9o8n021rcf2v4` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `users`
 --
 
+DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
@@ -121,12 +130,13 @@ CREATE TABLE `users` (
   `full_name` varchar(100) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `phone` varchar(30) DEFAULT NULL,
-  `role` enum('ADMIN','EMPLOYEE') NOT NULL,
+  `role` enum('ADMIN','EMPLOYEE','DEVELOPER') NOT NULL,
   `username` varchar(100) NOT NULL,
+  `token_version` bigint(20) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKr43af9ap4edm43mmtq01oddj6` (`username`),
   UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -138,4 +148,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-11-24 20:56:13
+-- Dump completed on 2026-11-27 16:45:10

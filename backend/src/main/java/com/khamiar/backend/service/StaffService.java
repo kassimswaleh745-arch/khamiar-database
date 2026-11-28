@@ -68,7 +68,7 @@ public class StaffService {
 
             profit.merge(
                     key,
-                    c.getProfit(),
+                    c.getProfit() == null ? BigDecimal.ZERO : c.getProfit(),
                     BigDecimal::add
             );
         }
@@ -82,6 +82,10 @@ public class StaffService {
 
         // Staff status without Leave
         for (User u : users.findAll(Sort.by("id"))) {
+            if (u.getRole() == Role.DEVELOPER) {
+                continue;
+            }
+
 
             String key = u.getUsername()
                     .toLowerCase(Locale.ROOT);

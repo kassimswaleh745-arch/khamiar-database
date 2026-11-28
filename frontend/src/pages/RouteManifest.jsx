@@ -7,12 +7,31 @@ import { TICKET_PILL, openPicker, todayIso } from "../constants.js";
 
 const fmt = (n) => Number(n || 0).toLocaleString("en-US");
 
+
+function formatDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(value + "T00:00:00");
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+}
+
 export default function RouteManifest() {
   const { id } = useParams();
   const { user } = useAuth();
   const isAdmin = user.role === "ADMIN";
 
   const [date, setDate] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const [data, setData] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -34,17 +53,21 @@ export default function RouteManifest() {
   }, [date, load]);
 
   async function setStatus(c, status) {
+    if (saving) return;
     if (status === "CANCELLED" && !window.confirm(`Cancel the ticket for ${c.customerName}? The tickets return to stock.`)) {
       return;
     }
     setError("");
     setMessage("");
+    setSaving(true);
     try {
       await api(`/api/customers/${c.id}/ticket-status`, { method: "PUT", body: { status } });
       setMessage(status === "USED" ? `${c.customerName} marked as used.` : "Ticket cancelled.");
       await load(date);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -61,6 +84,32 @@ export default function RouteManifest() {
   }
 
   const { route, customers } = data;
+
+  const filteredCustomers = customers.filter(c => {
+
+    const query = search.trim().toLowerCase();
+
+    const matchesSearch = [
+      c.customerName,
+      c.phone,
+      c.bookingReference,
+      c.createdBy
+    ].some(value =>
+      String(value || "").toLowerCase().includes(query)
+    );
+
+    const matchesStatus =
+      !statusFilter || c.ticketStatus === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredTickets = filteredCustomers
+    .filter(c => c.ticketStatus !== "CANCELLED")
+    .reduce((total, c) =>
+      total + Number(c.ticketCount || 0), 0);
+
+
   const today = todayIso();
   const listed = customers.filter((c) => c.ticketStatus !== "CANCELLED");
   const ticketsListed = listed.reduce((s, c) => s + (c.ticketCount || 0), 0);
@@ -80,9 +129,17 @@ export default function RouteManifest() {
           {date && (
             <button className="btn btn-outline-secondary" onClick={() => setDate("")}>All dates</button>
           )}
-          <button className="btn btn-success" onClick={() => window.print()}>
-            <i className="bi bi-printer me-1" /> Print
-          </button>
+
+{isAdmin && (
+  <button
+    className="btn btn-success"
+    onClick={() => window.print()}
+  >
+    <i className="bi bi-printer me-1" />
+    Print Passenger List
+  </button>
+)}
+
         </div>
       </div>
 
@@ -108,12 +165,101 @@ export default function RouteManifest() {
         </div>
       </div>
 
+
+<div className="card shadow-sm mb-3 no-print">
+
+  <div className="card-body">
+
+    <h5 className="mb-3">Passenger Records</h5>
+
+    <div className="row g-3">
+
+      <div className="col-12 col-md-7">
+
+        <label className="form-label" htmlFor="passenger-search">
+          Search Passengers
+        </label>
+
+        <div className="input-group">
+
+          <span className="input-group-text">
+            <i className="bi bi-search" />
+          </span>
+
+          <input
+            id="passenger-search"
+            type="search"
+            className="form-control"
+            placeholder="Name, phone or Booking ID..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+
+        </div>
+
+      </div>
+
+      <div className="col-12 col-md-5">
+
+        <label className="form-label" htmlFor="passenger-status">
+          Ticket Status
+        </label>
+
+        <select
+          id="passenger-status"
+          className="form-select"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All Statuses</option>
+          <option value="ISSUED">Allocated</option>
+          <option value="USED">Used</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+
+      </div>
+
+    </div>
+
+    <div className="d-flex flex-wrap gap-3
+                    align-items-center mt-3">
+
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-secondary"
+        onClick={() => {
+          setSearch("");
+          setStatusFilter("");
+          setDate("");
+        }}
+      >
+        <i className="bi bi-arrow-counterclockwise me-1" />
+        Clear Filters
+      </button>
+
+      <span className="small text-muted">
+        Showing {filteredCustomers.length} of {customers.length}
+        {" "}records · {fmt(filteredTickets)} non-cancelled tickets
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div className="mb-2 small text-muted">
+        Selected records: {filteredCustomers.length}
+        {" "}· Non-cancelled tickets: {fmt(filteredTickets)}
+      </div>
+
       <div className="table-responsive card shadow-sm">
         <table className="table table-hover align-middle mb-0">
           <thead className="table-dark">
             <tr>
-              <th>#</th>
+              <th>No.</th>
               <th>Customer</th>
+              <th>Booking ID</th>
               <th>Phone</th>
               <th>Travel date</th>
               <th className="text-end">Tickets</th>
@@ -123,18 +269,19 @@ export default function RouteManifest() {
             </tr>
           </thead>
           <tbody>
-            {customers.length === 0 && (
-              <tr><td colSpan="8" className="text-center text-muted py-4">No customers on this route{date ? " for this date" : ""}</td></tr>
+            {filteredCustomers.length === 0 && (
+              <tr><td colSpan="9" className="text-center text-muted py-4">No passenger records match the selected filters.</td></tr>
             )}
-            {customers.map((c, i) => {
+            {filteredCustomers.map((c, i) => {
               const pill = c.ticketStatus ? TICKET_PILL[c.ticketStatus] : null;
               const canUse = c.ticketStatus === "ISSUED" && c.travelDate <= today;
               return (
                 <tr key={c.id} className={c.ticketStatus === "CANCELLED" ? "table-secondary" : ""}>
                   <td>{i + 1}</td>
                   <td className="fw-semibold">{c.customerName}</td>
+                  <td>{c.bookingReference || "—"}</td>
                   <td>{c.phone}</td>
-                  <td>{c.travelDate}</td>
+                  <td>{formatDate(c.travelDate)}</td>
                   <td className="text-end">{c.ticketCount ?? "—"}</td>
                   <td>{pill ? <span className={"pill " + pill.cls}>{pill.label}</span> : "—"}</td>
                   <td>{c.createdBy || "—"}</td>
@@ -143,12 +290,12 @@ export default function RouteManifest() {
                       <i className="bi bi-eye" />
                     </Link>
                     {canUse && (
-                      <button className="btn btn-sm btn-outline-success me-1" onClick={() => setStatus(c, "USED")}>
+                      <button className="btn btn-sm btn-outline-success me-1" disabled={saving} onClick={() => setStatus(c, "USED")}>
                         Mark used
                       </button>
                     )}
                     {isAdmin && c.ticketStatus === "ISSUED" && (
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => setStatus(c, "CANCELLED")}>
+                      <button className="btn btn-sm btn-outline-danger" disabled={saving} onClick={() => setStatus(c, "CANCELLED")}>
                         Cancel
                       </button>
                     )}

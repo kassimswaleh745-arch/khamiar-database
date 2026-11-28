@@ -4,6 +4,7 @@ import com.khamiar.backend.dto.ManifestResponse;
 import com.khamiar.backend.dto.RouteRequest;
 import com.khamiar.backend.dto.RouteResponse;
 import com.khamiar.backend.dto.StockRequest;
+import com.khamiar.backend.dto.StockHistoryResponse;
 import com.khamiar.backend.entity.Customer;
 import com.khamiar.backend.entity.TicketStockEntry;
 import com.khamiar.backend.entity.TravelRoute;
@@ -56,13 +57,36 @@ public class RouteService {
         route.setSystemPrice(request.systemPrice());
         route.setActive(request.active() == null || request.active());
         TravelRoute saved = routes.save(route);
+
+        int initialStock = request.initialStock() == null
+                ? 0 : request.initialStock();
+
+        if (initialStock > 0) {
+
+            TicketStockEntry entry = new TicketStockEntry();
+
+            entry.setRouteId(saved.getId());
+            entry.setQuantity(initialStock);
+            entry.setNote("Initial stock");
+            entry.setCreatedBy(actor);
+
+            stockRepository.save(entry);
+
+            audit.log(actor, "STOCK_ADDED",
+                    "'" + saved.getName() + "' +" + initialStock);
+        }
+
+
         audit.log(actor, "ROUTE_CREATED", "'" + name + "' price " + saved.getCustomerPrice());
         return toResponse(saved, true);
     }
 
     @Transactional
     public RouteResponse update(Long id, RouteRequest request, String actor) {
-        TravelRoute route = getOrThrow(id);
+        TravelRoute route = routes.findForUpdate(id).orElseThrow(() ->
+                new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Route not found"
+                ));
         String name = request.name().trim();
         if (routes.findByNameIgnoreCase(name).filter(r -> !r.getId().equals(id)).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A route with this name already exists");
@@ -86,14 +110,31 @@ public class RouteService {
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Route not found"));
 
         int quantity = request.quantity();
-        if (quantity == 0 || Math.abs(quantity) > 100000) {
+        if (quantity == 0 || quantity < -100000 || quantity > 100000) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Quantity must be a non-zero number up to 100000");
         }
         int issued = tickets.issuedOf(id);
-        if (tickets.stockOf(id) + quantity < issued) {
+        long updatedStock = (long) tickets.stockOf(id) + quantity;
+
+        if (updatedStock > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Maximum stock limit exceeded"
+            );
+        }
+
+        if (updatedStock < issued) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Stock cannot be lower than the tickets already issued (" + issued + ")");
+        }
+
+        if (quantity < 0 &&
+                (request.note() == null || request.note().isBlank())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A reason is required when reducing stock"
+            );
         }
 
         TicketStockEntry entry = new TicketStockEntry();
@@ -116,6 +157,25 @@ public class RouteService {
                 : customers.findByRouteIdAndTravelDateOrderByIdAsc(id, date);
         return new ManifestResponse(toResponse(route, admin), date,
                 list.stream().map(CustomerMapper::toResponse).toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StockHistoryResponse> stockHistory(Long id) {
+
+        getOrThrow(id);
+
+        return stockRepository
+                .findByRouteIdOrderByIdDesc(id)
+                .stream()
+                .map(entry -> new StockHistoryResponse(
+                        entry.getId(),
+                        entry.getRouteId(),
+                        entry.getQuantity(),
+                        entry.getNote(),
+                        entry.getCreatedBy(),
+                        entry.getCreatedAt()
+                ))
+                .toList();
     }
 
     private TravelRoute getOrThrow(Long id) {

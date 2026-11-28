@@ -9,4 +9,7 @@ public interface TicketStockRepository extends JpaRepository<TicketStockEntry, L
 
     @Query("select sum(s.quantity) from TicketStockEntry s where s.routeId = :routeId")
     Long totalFor(@Param("routeId") Long routeId);
+
+    java.util.List<TicketStockEntry>
+        findByRouteIdOrderByIdDesc(Long routeId);
 }

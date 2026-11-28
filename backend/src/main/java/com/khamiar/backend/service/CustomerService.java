@@ -1,6 +1,7 @@
 package com.khamiar.backend.service;
 
 import com.khamiar.backend.dto.CustomerRequest;
+import com.khamiar.backend.dto.PhoneLookupResponse;
 import com.khamiar.backend.dto.CustomerResponse;
 import com.khamiar.backend.entity.Customer;
 import com.khamiar.backend.entity.TicketStatus;
@@ -26,12 +27,15 @@ public class CustomerService {
     private final TravelRouteRepository routes;
     private final TicketService tickets;
     private final AuditService audit;
+    private final PhoneNumberService phoneNumbers;
     public CustomerService(CustomerRepository repository, TravelRouteRepository routes,
-                           TicketService tickets, AuditService audit) {
+                           TicketService tickets, AuditService audit,
+                           PhoneNumberService phoneNumbers) {
         this.repository = repository;
         this.routes = routes;
         this.tickets = tickets;
         this.audit = audit;
+        this.phoneNumbers = phoneNumbers;
     }
 
     @Transactional(readOnly = true)
@@ -42,7 +46,7 @@ public class CustomerService {
         } else {
             String term = search.trim();
             customers = repository
-                    .findByCustomerNameContainingIgnoreCaseOrPhoneContainingOrderByIdDesc(term, term);
+                    .findByCustomerNameContainingIgnoreCaseOrPhoneContainingOrBookingReferenceContainingIgnoreCaseOrderByIdDesc(term, term, term);
         }
         return customers.stream().map(CustomerMapper::toResponse).toList();
     }
@@ -149,12 +153,69 @@ public class CustomerService {
         return CustomerMapper.toResponse(saved);
     }
 
+
     @Transactional
     public void delete(Long id, String actor) {
         Customer c = getOrThrow(id);
-        String label = "#" + c.getId() + " " + c.getCustomerName();
-        repository.delete(c);
-        audit.log(actor, "CUSTOMER_DELETED", label);
+
+        if (c.getTicketStatus() == TicketStatus.USED) {
+            throw bad("Used ticket records cannot be deleted");
+        }
+
+        if (c.getRouteId() != null) {
+            routes.findForUpdate(c.getRouteId())
+                .orElseThrow(() -> bad("Route not found"));
+        }
+
+        c.setDeletedAt(java.time.LocalDateTime.now(ZONE));
+        c.setDeletedBy(actor);
+
+        repository.save(c);
+
+        audit.log(actor, "CUSTOMER_SOFT_DELETED",
+                "#" + c.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerResponse> findDeleted() {
+        return repository.findDeletedCustomers().stream()
+                .map(CustomerMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void restore(Long id, String actor) {
+        Customer c = repository.findDeletedById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Deleted customer not found"));
+
+        if (c.getTicketStatus() != TicketStatus.CANCELLED) {
+            if (c.getRouteId() == null || c.getTicketCount() == null
+                    || c.getTicketStatus() == null) {
+                throw bad("Legacy record requires review before restoration");
+            }
+
+            TravelRoute route = lockActiveRoute(c.getRouteId());
+
+            if (c.getTicketCount() > tickets.remainingOf(route.getId())) {
+                throw bad("Insufficient ticket stock to restore this record");
+            }
+
+            ensureNotDuplicate(
+                    normalizePhone(c.getPhone()),
+                    c.getRouteId(),
+                    c.getTravelDate(),
+                    c.getId());
+        }
+
+        if (repository.restoreDeletedCustomer(id) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Customer could not be restored");
+        }
+
+        audit.log(actor, "CUSTOMER_RESTORED", "#" + id);
     }
 
     private Customer getOrThrow(Long id) {
@@ -168,15 +229,39 @@ public class CustomerService {
                 .orElseThrow(() -> bad("The selected route is not available"));
     }
 
-    private void ensureNotDuplicate(String phone, Long routeId, LocalDate date, Long excludeId) {
-        if (repository.existsByPhoneAndRouteIdAndTravelDateAndTicketStatusNotAndIdNot(
-                phone, routeId, date, TicketStatus.CANCELLED, excludeId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A ticket for this phone number, route and travel date already exists");
+
+    private void ensureNotDuplicate(
+            String phone,
+            Long routeId,
+            LocalDate date,
+            Long excludeId) {
+
+        List<Customer> existing =
+                repository.findByRouteIdAndTravelDateOrderByIdAsc(
+                        routeId, date);
+
+        boolean duplicate = existing.stream()
+                .filter(c -> !java.util.Objects.equals(
+                        c.getId(), excludeId))
+                .filter(c -> c.getTicketStatus()
+                        != TicketStatus.CANCELLED)
+                .anyMatch(c -> {
+                    try {
+                        return phone.equals(
+                                phoneNumbers.normalize(c.getPhone()));
+                    } catch (IllegalArgumentException ex) {
+                        return phone.equals(c.getPhone());
+                    }
+                });
+
+        if (duplicate) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "A booking already exists for this phone number, route and travel date."
+            );
         }
     }
 
-    /** Kiasi kinahesabiwa na seva kutoka kwenye bei ya route, si na mtumiaji */
     private void apply(Customer c, CustomerRequest r, TravelRoute route, String phone) {
         int quantity = r.ticketCount();
         BigDecimal q = BigDecimal.valueOf(quantity);
@@ -190,6 +275,10 @@ public class CustomerService {
         c.setRouteId(route.getId());
         c.setRoute(route.getName());
         c.setTicketCount(quantity);
+
+        if (r.bookingReference() != null) {
+            c.setBookingReference(clean(r.bookingReference()));
+        }
         c.setCustomerAmount(customerAmount);
         c.setSystemAmount(systemAmount);
         c.setProfit(customerAmount.subtract(systemAmount));
@@ -203,8 +292,12 @@ public class CustomerService {
         }
     }
 
-    private static String normalizePhone(String phone) {
-        return phone.replaceAll("\\s+", "");
+    private String normalizePhone(String phone) {
+        try {
+            return phoneNumbers.normalize(phone);
+        } catch (IllegalArgumentException ex) {
+            throw bad(ex.getMessage());
+        }
     }
 
     private static String clean(String value) {
@@ -218,4 +311,24 @@ public class CustomerService {
     private static ResponseStatusException forbidden(String message) {
         return new ResponseStatusException(HttpStatus.FORBIDDEN, message);
     }
+
+    @Transactional(readOnly = true)
+    public PhoneLookupResponse lookupPhone(String rawPhone) {
+
+        String phone = normalizePhone(rawPhone);
+
+        List<Customer> matches =
+                repository.findByPhoneOrderByIdDesc(phone);
+
+        if (matches.isEmpty()) {
+            return new PhoneLookupResponse(false, null, 0);
+        }
+
+        return new PhoneLookupResponse(
+                true,
+                matches.get(0).getCustomerName(),
+                matches.size()
+        );
+    }
+
 }

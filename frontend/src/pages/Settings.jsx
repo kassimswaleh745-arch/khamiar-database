@@ -1,146 +1,417 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 import { explain } from "../constants.js";
 
+const emptyPassword = {
+  currentPassword: "",
+  newPassword: "",
+  confirm: ""
+};
+
+function profileValues(p) {
+  return {
+    fullName: p?.fullName || "",
+    email: p?.email || "",
+    phone: p?.phone || ""
+  };
+}
+
+function normalize(p) {
+  return Object.fromEntries(
+    Object.entries(p).map(([key, value]) => [key, value.trim()])
+  );
+}
+
 export default function Settings() {
+  const { logout } = useAuth();
+
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "" });
-  const [pw, setPw] = useState({ currentPassword: "", newPassword: "", confirm: "" });
-  const [profileMsg, setProfileMsg] = useState({ type: "", text: "" });
-  const [pwMsg, setPwMsg] = useState({ type: "", text: "" });
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [changing, setChanging] = useState(false);
+  const [form, setForm] = useState(profileValues(null));
+  const [pw, setPw] = useState(emptyPassword);
+  const [tab, setTab] = useState("profile");
+  const [visible, setVisible] = useState({});
+  const [message, setMessage] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     api("/api/me")
-      .then((p) => {
+      .then(p => {
         setProfile(p);
-        setForm({ fullName: p.fullName || "", email: p.email || "", phone: p.phone || "" });
+        setForm(profileValues(p));
       })
-      .catch((err) => setLoadError(err.message));
+      .catch(err => setLoadError(err.message));
   }, []);
+
+  const dirty = profile !== null &&
+    JSON.stringify(normalize(form)) !==
+    JSON.stringify(normalize(profileValues(profile)));
+
+  const passwordDirty = Object.values(pw).some(Boolean);
+
+  useEffect(() => {
+    function warn(e) {
+      if (dirty || passwordDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    }
+
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty, passwordDirty]);
+
+  const validName =
+    form.fullName.trim().length > 0 &&
+    form.fullName.trim().length <= 100;
+
+  const validEmail =
+    !form.email.trim() ||
+    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.email.trim());
+
+  const validPhone =
+    !form.phone.trim() ||
+    /^\\+?[0-9][0-9 ()-]{6,28}$/.test(form.phone.trim());
+
+  const validProfile = validName && validEmail && validPhone;
+
+  const requirements = [
+    [pw.newPassword.length >= 8, "At least 8 characters"],
+    [/[A-Za-z]/.test(pw.newPassword), "Contains a letter"],
+    [/[0-9]/.test(pw.newPassword), "Contains a number"],
+    [!!pw.newPassword && new TextEncoder().encode(pw.newPassword).length <= 72,
+      "Within the supported password length"],
+    [!!pw.newPassword && pw.newPassword === pw.confirm,
+      "Passwords match"],
+    [!!pw.newPassword && pw.newPassword !== pw.currentPassword,
+      "Different from current password"]
+  ];
+
+  const validPassword =
+    !!pw.currentPassword && requirements.every(([ok]) => ok);
+
+  function switchTab(next) {
+    if (busy || next === tab) return;
+
+    if ((dirty || passwordDirty) &&
+        !window.confirm("Discard unsaved changes?")) return;
+
+    setForm(profileValues(profile));
+    setPw(emptyPassword);
+    setVisible({});
+    setMessage(null);
+    setErrors({});
+    setTouched({});
+    setTab(next);
+  }
 
   async function saveProfile(e) {
     e.preventDefault();
-    setSaving(true);
-    setProfileMsg({ type: "", text: "" });
-    setFieldErrors({});
+    if (!dirty || !validProfile || busy) return;
+
+    setBusy(true);
+    setMessage(null);
+    setErrors({});
+    setTouched({});
+
     try {
-      const p = await api("/api/me", { method: "PUT", body: form });
+      const p = await api("/api/me", {
+        method: "PUT",
+        body: normalize(form)
+      });
+
       setProfile(p);
-      setProfileMsg({ type: "success", text: "Profile saved." });
+      setForm(profileValues(p));
+      setMessage({
+        type: "success",
+        text: "Profile updated successfully."
+      });
     } catch (err) {
-      setFieldErrors(err.errors || {});
-      setProfileMsg({ type: "danger", text: explain(err) });
+      setErrors(err.errors || {});
+      setMessage({ type: "danger", text: explain(err) });
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   }
 
   async function changePassword(e) {
     e.preventDefault();
-    setPwMsg({ type: "", text: "" });
-    if (pw.newPassword !== pw.confirm) {
-      setPwMsg({ type: "danger", text: "The new passwords do not match." });
-      return;
-    }
-    setChanging(true);
+    if (!validPassword || busy) return;
+
+    setBusy(true);
+    setMessage(null);
+
     try {
       await api("/api/me/password", {
         method: "PUT",
-        body: { currentPassword: pw.currentPassword, newPassword: pw.newPassword },
+        body: {
+          currentPassword: pw.currentPassword,
+          newPassword: pw.newPassword
+        }
       });
-      setPw({ currentPassword: "", newPassword: "", confirm: "" });
-      setPwMsg({ type: "success", text: "Password changed. Use the new password next time you sign in." });
+
+      setPw(emptyPassword);
+      window.alert("Password changed successfully. Sign in again.");
+
+      // Backend has already revoked all existing tokens.
+      await logout({ revoke: false });
     } catch (err) {
-      setPwMsg({ type: "danger", text: explain(err) });
+      setMessage({ type: "danger", text: explain(err) });
     } finally {
-      setChanging(false);
+      setBusy(false);
     }
   }
 
-  if (loadError) return <Layout><div className="alert alert-danger">{loadError}</div></Layout>;
-  if (!profile) return <Layout><p className="text-muted">Loading...</p></Layout>;
+  function field(name, label, type, maxLength, valid) {
+    return (
+      <div className="mb-3">
+        <label htmlFor={name} className="form-label">{label}</label>
+        <input
+          id={name}
+          type={type}
+          maxLength={maxLength}
+          required={name === "fullName"}
+          disabled={busy}
+          className={"form-control" +
+            ((touched[name] && !valid) || errors[name] ? " is-invalid" : "")}
+          value={form[name]}
+        onBlur={() => setTouched(prev => ({ ...prev, [name]: true }))}
+          onChange={e => {
+            setForm(f => ({ ...f, [name]: e.target.value }));
+            setErrors(old => ({ ...old, [name]: undefined }));
+            setMessage(null);
+          }}
+        />
+        <div className="invalid-feedback">
+          {errors[name] || "Enter a valid " + label.toLowerCase()}
+        </div>
+      </div>
+    );
+  }
 
-  const input = (name, label, type = "text", hint) => (
-    <div className="mb-3">
-      <label className="form-label">{label}</label>
-      <input
-        className={"form-control" + (fieldErrors[name] ? " is-invalid" : "")}
-        type={type}
-        value={form[name]}
-        onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-      />
-      {fieldErrors[name] && <div className="invalid-feedback">{fieldErrors[name]}</div>}
-      {hint && <div className="form-text">{hint}</div>}
-    </div>
-  );
+  function passwordField(name, label) {
+    return (
+      <div className="mb-3">
+        <label htmlFor={name} className="form-label">{label}</label>
+
+        <div className="input-group">
+          <input
+            id={name}
+            type={visible[name] ? "text" : "password"}
+            className="form-control"
+            required
+            maxLength={100}
+            disabled={busy}
+            autoComplete={
+              name === "currentPassword"
+                ? "current-password"
+                : "new-password"
+            }
+            value={pw[name]}
+            onChange={e => {
+              setPw(p => ({ ...p, [name]: e.target.value }));
+              setMessage(null);
+            }}
+          />
+
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            aria-label={visible[name] ? "Hide password" : "Show password"}
+            onClick={() =>
+              setVisible(v => ({ ...v, [name]: !v[name] }))
+            }
+          >
+            <i className={
+              visible[name] ? "bi bi-eye-slash" : "bi bi-eye"
+            } />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return <Layout>
+      <div className="alert alert-danger">{loadError}</div>
+    </Layout>;
+  }
+
+  if (!profile) {
+    return <Layout>
+      <div className="text-center py-5" role="status">
+        <div className="spinner-border text-primary" />
+        <p className="mt-3 text-muted">Loading settings...</p>
+      </div>
+    </Layout>;
+  }
 
   return (
     <Layout>
-      <div className="row g-4">
-        <div className="col-12 col-xl-6">
-          <div className="card h-100">
-            <div className="card-body">
-              <div className="d-flex align-items-center gap-3 mb-4">
-                <div className="avatar avatar-lg">{profile.username.slice(0, 2).toUpperCase()}</div>
-                <div>
-                  <h5 className="mb-0">{profile.fullName || profile.username}</h5>
-                  <div className="text-muted small">
-                    Username: <strong>{profile.username}</strong> · {profile.role}
+      <div className="d-flex flex-wrap justify-content-between
+                      align-items-center gap-3 mb-4">
+        <div>
+          <h4 className="mb-1">Account Settings</h4>
+          <p className="text-muted mb-0">
+            Manage your personal information and account security.
+          </p>
+        </div>
+
+        <Link to="/profile" className="btn btn-outline-primary">
+          <i className="bi bi-person-circle me-2" />
+          View Profile
+        </Link>
+      </div>
+
+      <div className="card mb-4">
+        <div className="card-body d-flex flex-wrap gap-2">
+          {[
+            ["profile", "bi-person", "Personal Information"],
+            ["security", "bi-shield-lock", "Password & Security"],
+            ["account", "bi-info-circle", "Account Information"]
+          ].map(([key, icon, label]) => (
+            <button
+              key={key}
+              type="button"
+              disabled={busy}
+              className={"btn " +
+                (tab === key ? "btn-primary" : "btn-outline-primary")}
+              onClick={() => switchTab(key)}
+            >
+              <i className={"bi " + icon + " me-2"} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-body p-4">
+
+          {message && (
+            <div role="alert" className={"alert alert-" + message.type}>
+              {message.text}
+            </div>
+          )}
+
+          {tab === "profile" && (
+            <form onSubmit={saveProfile}>
+              <h5>Personal Information</h5>
+              <p className="text-muted mb-4">
+                Update your account contact details.
+              </p>
+
+              {field("fullName", "Full Name", "text", 100, validName)}
+
+              <div className="row">
+                <div className="col-md-6">
+                  {field("email", "Email", "email", 150, validEmail)}
+                </div>
+                <div className="col-md-6">
+                  {field("phone", "Phone", "tel", 30, validPhone)}
+                </div>
+              </div>
+
+              <div className="d-flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!dirty || !validProfile || busy}
+                >
+                  {busy ? "Saving..." : "Save Changes"}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  disabled={!dirty || busy}
+                  onClick={() => {
+                    setForm(profileValues(profile));
+                    setErrors({});
+    setTouched({});
+                    setMessage(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {tab === "security" && (
+            <form onSubmit={changePassword}>
+              <h5>Change Password</h5>
+              <p className="text-muted mb-4">
+                Changing your password signs out existing sessions.
+              </p>
+
+              <div className="row">
+                <div className="col-lg-7">
+                  {passwordField("currentPassword", "Current Password")}
+                  {passwordField("newPassword", "New Password")}
+                  {passwordField("confirm", "Confirm New Password")}
+                </div>
+
+                <div className="col-lg-5">
+                  <div className="border rounded p-3 mb-3">
+                    <h6>Password Requirements</h6>
+
+                    {requirements.map(([ok, label]) => (
+                      <div key={label} className={
+                        "small mb-2 " +
+                        (ok ? "text-success" : "text-muted")
+                      }>
+                        <i className={
+                          "bi me-2 " +
+                          (ok ? "bi-check-circle" : "bi-circle")
+                        } />
+                        {label}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {profileMsg.text && <div className={"alert alert-" + profileMsg.type + " py-2"}>{profileMsg.text}</div>}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!validPassword || busy}
+              >
+                {busy ? "Changing..." : "Change Password"}
+              </button>
+            </form>
+          )}
 
-              <form onSubmit={saveProfile}>
-                {input("fullName", "Full name")}
-                {input("email", "Email (optional)", "email", "Used only to send you leave notifications. It is not used to sign in.")}
-                {input("phone", "Phone (optional)", "tel")}
-                <button className="btn btn-primary" disabled={saving}>
-                  {saving ? "Saving..." : "Save profile"}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
+          {tab === "account" && (
+            <>
+              <h5>Account Information</h5>
+              <p className="text-muted">Registered account details.</p>
 
-        <div className="col-12 col-xl-6">
-          <div className="card h-100">
-            <div className="card-body">
-              <h5 className="mb-1">Change password</h5>
-              <p className="text-muted small mb-4">
-                At least 8 characters, with a letter and a number. Only you should know it.
-              </p>
+              <dl className="row mb-0">
+                <dt className="col-sm-4">Account ID</dt>
+                <dd className="col-sm-8">{profile.id}</dd>
 
-              {pwMsg.text && <div className={"alert alert-" + pwMsg.type + " py-2"}>{pwMsg.text}</div>}
+                <dt className="col-sm-4">Username</dt>
+                <dd className="col-sm-8">{profile.username}</dd>
 
-              <form onSubmit={changePassword}>
-                <div className="mb-3">
-                  <label className="form-label">Current password</label>
-                  <input type="password" className="form-control" autoComplete="current-password" required
-                    value={pw.currentPassword} onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">New password</label>
-                  <input type="password" className="form-control" autoComplete="new-password" required minLength={8}
-                    value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Confirm new password</label>
-                  <input type="password" className="form-control" autoComplete="new-password" required minLength={8}
-                    value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} />
-                </div>
-                <button className="btn btn-primary" disabled={changing}>
-                  {changing ? "Changing..." : "Change password"}
-                </button>
-              </form>
-            </div>
-          </div>
+                <dt className="col-sm-4">Account Role</dt>
+                <dd className="col-sm-8">{profile.role}</dd>
+
+                <dt className="col-sm-4">Date Created</dt>
+                <dd className="col-sm-8">
+                  {profile.createdAt
+                    ? new Date(profile.createdAt).toLocaleDateString("en-GB")
+                    : "Not available"}
+                </dd>
+              </dl>
+            </>
+          )}
+
         </div>
       </div>
     </Layout>

@@ -71,10 +71,13 @@ export default function CustomerDetails() {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete customer ${c.customerName}?`)) return;
+    if (!isAdmin || c.ticketStatus === "USED") return;
+    if (!window.confirm(
+      `Move ${c.customerName} to Recycle Bin? You can restore it later.`
+    )) return;
     try {
       await api(`/api/customers/${c.id}`, { method: "DELETE" });
-      navigate("/customers", { state: { message: "Customer deleted." } });
+      navigate("/customers", { state: { message: "Customer moved to Recycle Bin successfully." } });
     } catch (err) {
       setError(err.message);
     }
@@ -109,10 +112,13 @@ export default function CustomerDetails() {
 
   const rows = [
     ["Phone", c.phone],
+    ["Booking Number", c.bookingReference || "—"],
     ["Route", c.route],
     ["Travel date", c.travelDate],
     ["Tickets", c.ticketCount ?? "—"],
-    ["System amount", fmt(c.systemAmount) + " TZS"],
+    ...(isAdmin
+      ? [["System amount", fmt(c.systemAmount) + " TZS"]]
+      : []),
     ["Added by", c.createdBy || "—"],
     ["Created", new Date(c.createdAt).toLocaleString("en-GB")],
   ];
@@ -147,9 +153,9 @@ export default function CustomerDetails() {
               Reopen ticket
             </button>
           )}
-          {isAdmin && (
+          {isAdmin && c.ticketStatus !== "USED" && (
             <button className="btn btn-outline-danger" onClick={handleDelete}>
-              <i className="bi bi-trash me-1" /> Delete
+              <i className="bi bi-trash me-1" /> Move to Recycle Bin
             </button>
           )}
         </div>
@@ -172,20 +178,53 @@ export default function CustomerDetails() {
         </div>
       </div>
 
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-ticket-perforated-fill" tone="blue" label="Tickets" value={c.ticketCount ?? "—"} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-cash-stack" tone="green" label="Customer amount" value={fmt(c.customerAmount) + " TZS"} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-calendar-event" tone="amber" label="Travel date" value={c.travelDate} />
-        </div>
-        <div className="col-12 col-md-6 col-xl-3">
-          <Mini icon="bi-graph-up-arrow" tone={profit < 0 ? "red" : "green"} label="Profit" value={fmt(profit) + " TZS"} />
-        </div>
-      </div>
+          <div className="row g-3 mb-4">
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-ticket-perforated-fill"
+      tone="blue"
+      label="Tickets"
+      value={c.ticketCount ?? "—"}
+    />
+  </div>
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-cash-stack"
+      tone="green"
+      label="Customer amount"
+      value={fmt(c.customerAmount) + " TZS"}
+    />
+  </div>
+
+  <div className={isAdmin
+    ? "col-12 col-md-6 col-xl-3"
+    : "col-12 col-md-4"}>
+    <Mini
+      icon="bi-calendar-event"
+      tone="amber"
+      label="Travel date"
+      value={c.travelDate}
+    />
+  </div>
+
+  {isAdmin && (
+    <div className="col-12 col-md-6 col-xl-3">
+      <Mini
+        icon="bi-graph-up-arrow"
+        tone={profit < 0 ? "red" : "green"}
+        label="Profit"
+        value={fmt(profit) + " TZS"}
+      />
+    </div>
+  )}
+
+</div>
 
       <div className="row g-3">
         <div className="col-12 col-xl-7">

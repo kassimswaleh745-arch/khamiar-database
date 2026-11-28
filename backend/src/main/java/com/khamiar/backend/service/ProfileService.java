@@ -56,13 +56,29 @@ public class ProfileService {
             audit.log(user.getUsername(), "PASSWORD_CHANGE_FAILED", "Wrong current password");
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
         }
+        if (request.newPassword()
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "New password must not exceed 72 UTF-8 bytes");
+        }
+
         if (encoder.matches(request.newPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "New password must be different from the current one");
         }
         user.setPassword(encoder.encode(request.newPassword()));
+        user.revokeSessions();
         repository.save(user);
         audit.log(user.getUsername(), "PASSWORD_CHANGED", "Changed own password");
+    }
+
+    @Transactional
+    public void logout(String username) {
+        User user = find(username);
+        user.revokeSessions();
+        repository.save(user);
+        audit.log(username, "LOGOUT", "User signed out");
     }
 
     private User find(String username) {

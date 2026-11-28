@@ -57,16 +57,19 @@ public class JwtConfig {
 
         OAuth2TokenValidator<Jwt> userStillValid = jwt -> {
             List<String> roles = jwt.getClaimAsStringList("roles");
+            Object version = jwt.getClaims().get("token_version");
             boolean ok = users.findByUsernameIgnoreCase(jwt.getSubject())
                     .filter(User::isActive)
+                    .filter(u -> version instanceof Number n
+                            && n.longValue() == u.getTokenVersion())
                     .filter(u -> roles != null && roles.contains(u.getRole().name()))
-                    .filter(u -> u.getRole() == Role.ADMIN || !system.isLocked())
+                    .filter(u -> u.getRole() != Role.EMPLOYEE || !system.isLocked())
                     .isPresent();
             return ok
                     ? OAuth2TokenValidatorResult.success()
                     : OAuth2TokenValidatorResult.failure(new OAuth2Error(
                             "invalid_token",
-                            "User is disabled, permissions changed, or the system is locked", null));
+                            "Session expired or revoked. Please sign in again.", null));
         };
 
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(

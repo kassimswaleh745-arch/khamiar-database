@@ -79,7 +79,10 @@ public class DashboardService {
     }
 
     private static BigDecimal sum(List<Customer> list, Function<Customer, BigDecimal> f) {
-        return list.stream().map(f).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return list.stream()
+                .map(f)
+                .map(DashboardService::nz)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private static BigDecimal nz(BigDecimal v) {
